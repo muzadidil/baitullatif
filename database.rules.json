@@ -1,0 +1,64 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": false,
+
+    "admin": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "master": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "struktur": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "pengeluaran": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null",
+        ".validate": "!newData.exists() || newData.hasChildren(['pj', 'keterangan', 'total', 'kategori'])",
+        "pj":         { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100" },
+        "jabatanPj":  { ".validate": "newData.isString() && newData.val().length <= 50" },
+        "keterangan": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+        "total":      { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "qty":        { ".validate": "newData.isNumber()" },
+        "satuan":     { ".validate": "newData.isString() && newData.val().length <= 50" },
+        "kategori":   { ".validate": "newData.isString() && newData.val().length <= 50" },
+        "status":     { ".validate": "newData.isString()" },
+        "waktu":      { ".validate": "newData.isNumber()" },
+        "$other":     { ".validate": false }
+      }
+    },
+
+    "pemasukan": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null",
+        ".validate": "!newData.exists() || newData.hasChildren(['pj', 'nominal'])",
+        "pj":         { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100" },
+        "nominal":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "keterangan": { ".validate": "newData.isString() && newData.val().length <= 200" },
+        "waktu":      { ".validate": "newData.isNumber()" },
+        "$other":     { ".validate": false }
+      }
+    },
+
+    "panitia": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['jabatan', 'nama'])",
+        "jabatan":  { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50" },
+        "nama":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100" },
+        "waktu":    { ".validate": "newData.isNumber()" },
+        "$other":   { ".validate": false }
+      }
+    }
+  }
+}

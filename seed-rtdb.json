@@ -1,0 +1,14 @@
+{
+  "master": {
+    "satuan": ["Pcs", "Box", "Pack", "Kg", "Liter", "Buah", "Lembar", "Orang", "Meter", "Set"],
+    "kategori": ["Konsumsi", "Dekorasi", "Perlengkapan", "Transportasi", "Dokumentasi", "Cetak/ATK", "Honor", "Lain-lain"],
+    "namaPanitia": ["Contoh Nama 1", "Contoh Nama 2", "Contoh Nama 3"],
+    "jabatan": ["Ketua", "Wakil Ketua", "Sekretaris", "Bendahara", "Sie Acara", "Sie Konsumsi", "Sie Perlengkapan", "Sie Dokumentasi"]
+  },
+  "struktur": {
+    "pj": "Nama Penanggung Jawab",
+    "ketua": "Nama Ketua Panitia",
+    "bendahara": "Nama Bendahara",
+    "sekretaris": "Nama Sekretaris"
+  }
+}

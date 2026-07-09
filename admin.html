@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Admin - TPQ AL-MAIDAH</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="flex flex-col min-h-screen">
+  <div style="max-width: 600px; margin: 0 auto; padding: 15px; width: 100%;">
+
+    <header class="flex items-center justify-between mb-5 px-2 fade-up">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 bca-gradient rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 text-white">
+          <i data-lucide="shield" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-gray-800 text-sm leading-tight tracking-wide">ADMIN PANEL</h1>
+          <p class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">TPQ Al-Maidah</p>
+        </div>
+      </div>
+      <a href="index.html" class="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">
+        <i data-lucide="arrow-left" class="w-5 h-5 text-gray-600"></i>
+      </a>
+    </header>
+
+    <!-- PIN GATE -->
+    <div id="pin-gate" class="glass-card rounded-3xl p-8 max-w-md mx-auto fade-up">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bca-gradient rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+          <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+        </div>
+        <h2 class="text-gray-800 font-bold text-base">Masuk sebagai Admin</h2>
+        <p class="text-xs text-gray-400 mt-1">PIN default: <strong>1234</strong></p>
+      </div>
+      <div class="space-y-4">
+        <input type="password" id="pin-input" placeholder="••••" inputmode="numeric" maxlength="8"
+          class="w-full bg-gray-50 px-4 py-4 rounded-2xl border border-gray-100 input-focus outline-none text-center text-2xl font-bold tracking-[0.5em] text-gray-700">
+        <p id="pin-error" class="text-red-500 text-xs text-center hidden"></p>
+        <button onclick="verifyPin()" class="w-full bca-gradient text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 btn-bounce hover:brightness-110 transition-all">
+          Masuk Admin
+        </button>
+        <!-- Reset PIN with license -->
+        <div id="reset-toggle" class="text-center">
+          <button onclick="document.getElementById('reset-form').classList.toggle('hidden')" class="text-xs text-gray-400 underline" style="width:auto;padding:4px;margin:0;">Lupa PIN?</button>
+        </div>
+        <div id="reset-form" class="hidden space-y-2 border border-gray-100 rounded-2xl p-4 bg-gray-50">
+          <p class="text-xs text-gray-500 text-center">Masukkan kode lisensi untuk reset PIN ke 1234</p>
+          <input type="text" id="license-input" placeholder="Kode Lisensi" autocomplete="off"
+            class="w-full bg-white px-4 py-3 rounded-xl border border-gray-200 outline-none text-center text-sm font-bold tracking-widest text-gray-700 uppercase">
+          <button onclick="resetPinByLicense()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-all btn-bounce">
+            Reset PIN
+          </button>
+        </div>
+        <a href="index.html" class="block text-center text-xs text-gray-400 hover:text-gray-600 transition-all">
+          ← Kembali ke Aplikasi
+        </a>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="admin-panel" class="hidden fade-up">
+
+      <!-- Tabs: 6 sections -->
+      <div id="admin-tabs" class="flex bg-white rounded-2xl p-1.5 shadow-sm mb-6 border border-gray-100 gap-1 overflow-x-auto">
+        <button id="tab-btn-menu"     onclick="showSection('menu')"     class="active-tab flex-shrink-0 py-2.5 px-3 text-[10px] font-bold rounded-xl transition-all">Menu</button>
+        <button id="tab-btn-kategori" onclick="showSection('kategori')" class="flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all">Kategori</button>
+        <button id="tab-btn-satuan"   onclick="showSection('satuan')"   class="flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all">Satuan</button>
+        <button id="tab-btn-jabatan"  onclick="showSection('jabatan')"  class="flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all">Jabatan</button>
+        <button id="tab-btn-panitia"  onclick="showSection('panitia')"  class="flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all">Panitia</button>
+        <button id="tab-btn-audit"    onclick="showSection('audit')"    class="flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all">Audit</button>
+        <button id="tab-btn-lpj"      onclick="showSection('lpj')"      class="flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all">LPJ</button>
+        <button id="tab-btn-akun"     onclick="showSection('akun')"     class="flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all">Akun</button>
+      </div>
+
+      <!-- Section: Menu -->
+      <div id="section-menu" class="glass-card rounded-3xl p-6 max-w-md mx-auto">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div class="p-2 bg-blue-50 rounded-lg"><i data-lucide="layout-grid" class="w-5 h-5 text-[#003399]"></i></div>
+          <div><h2 class="text-gray-800 font-bold text-sm">PENGATURAN MENU</h2><p class="text-[10px] text-gray-400">Tampilkan atau sembunyikan menu</p></div>
+        </div>
+        <div class="space-y-3" id="menu-toggles">
+          <!-- Keluar -->
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center"><i data-lucide="trending-down" class="w-4 h-4 text-red-500"></i></div>
+              <span class="text-sm font-semibold text-gray-700">Pengeluaran (Keluar)</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer toggle-label">
+              <input type="checkbox" id="menu-keluar" class="sr-only peer" checked>
+              <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#003399] transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+            </label>
+          </div>
+          <!-- Masuk -->
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center"><i data-lucide="trending-up" class="w-4 h-4 text-green-500"></i></div>
+              <span class="text-sm font-semibold text-gray-700">Pemasukan (Masuk)</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer toggle-label">
+              <input type="checkbox" id="menu-masuk" class="sr-only peer" checked>
+              <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#003399] transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+            </label>
+          </div>
+          <!-- Panitia -->
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center"><i data-lucide="users" class="w-4 h-4 text-purple-500"></i></div>
+              <span class="text-sm font-semibold text-gray-700">Susunan Panitia</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer toggle-label">
+              <input type="checkbox" id="menu-panitia" class="sr-only peer" checked>
+              <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#003399] transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+            </label>
+          </div>
+          <!-- Riwayat -->
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center"><i data-lucide="history" class="w-4 h-4 text-[#003399]"></i></div>
+              <span class="text-sm font-semibold text-gray-700">Riwayat & Cetak</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer toggle-label">
+              <input type="checkbox" id="menu-riwayat" class="sr-only peer" checked>
+              <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#003399] transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+            </label>
+          </div>
+        </div>
+        <button onclick="saveMenuSettings()" class="w-full mt-5 bca-gradient text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 btn-bounce hover:brightness-110 transition-all">
+          Simpan Pengaturan Menu
+        </button>
+      </div>
+
+      <!-- Section: Kategori -->
+      <div id="section-kategori" class="hidden glass-card rounded-3xl p-6 max-w-md mx-auto">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div class="p-2 bg-orange-50 rounded-lg"><i data-lucide="tag" class="w-5 h-5 text-orange-500"></i></div>
+          <div><h2 class="text-gray-800 font-bold text-sm">KATEGORI PENGELUARAN</h2><p class="text-[10px] text-gray-400">Tambah atau hapus kategori</p></div>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="new-kategori" placeholder="Nama kategori baru..."
+            class="flex-1 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium placeholder:text-gray-300 text-sm">
+          <button onclick="addKategori()" class="btn-add bca-gradient text-white font-bold rounded-2xl shadow-md btn-bounce">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div id="kategori-list" class="space-y-2 max-h-[400px] overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Section: Satuan -->
+      <div id="section-satuan" class="hidden glass-card rounded-3xl p-6 max-w-md mx-auto">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div class="p-2 bg-teal-50 rounded-lg"><i data-lucide="package" class="w-5 h-5 text-teal-500"></i></div>
+          <div><h2 class="text-gray-800 font-bold text-sm">SATUAN</h2><p class="text-[10px] text-gray-400">Tambah atau hapus satuan barang</p></div>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="new-satuan" placeholder="Satuan baru (misal: Pack, Kg)..."
+            class="flex-1 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium placeholder:text-gray-300 text-sm">
+          <button onclick="addSatuan()" class="btn-add bg-teal-500 text-white font-bold rounded-2xl shadow-md btn-bounce">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div id="satuan-list" class="space-y-2 max-h-[400px] overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Section: Jabatan -->
+      <div id="section-jabatan" class="hidden glass-card rounded-3xl p-6 max-w-md mx-auto">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div class="p-2 bg-indigo-50 rounded-lg"><i data-lucide="briefcase" class="w-5 h-5 text-indigo-500"></i></div>
+          <div><h2 class="text-gray-800 font-bold text-sm">JABATAN / PERAN</h2><p class="text-[10px] text-gray-400">Kelola daftar jabatan kepanitiaan</p></div>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="new-jabatan" placeholder="Jabatan baru (misal: Seksi Humas)..."
+            class="flex-1 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium placeholder:text-gray-300 text-sm">
+          <button onclick="addJabatan()" class="btn-add bg-indigo-500 text-white font-bold rounded-2xl shadow-md btn-bounce">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div id="jabatan-list" class="space-y-2 max-h-[400px] overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Section: Panitia -->
+      <div id="section-panitia" class="hidden glass-card rounded-3xl p-6 max-w-md mx-auto">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div class="p-2 bg-purple-50 rounded-lg"><i data-lucide="users" class="w-5 h-5 text-purple-600"></i></div>
+          <div><h2 class="text-gray-800 font-bold text-sm">SUSUNAN PANITIA</h2><p class="text-[10px] text-gray-400">Edit jabatan atau hapus anggota</p></div>
+        </div>
+        <div class="flex items-center gap-2 px-3 mb-2">
+          <span class="flex-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nama</span>
+          <span class="flex-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Jabatan</span>
+          <span class="w-8"></span>
+        </div>
+        <div id="panitia-records-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-1 mb-6">
+          <p class="text-xs text-gray-400 text-center py-4">Memuat data...</p>
+        </div>
+        <!-- Master Nama -->
+        <div class="border-t border-gray-100 pt-5">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Master Nama (Dropdown)</p>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="new-panitia" placeholder="Tambah nama baru..."
+              class="flex-1 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium placeholder:text-gray-300 text-sm uppercase">
+            <button onclick="addPanitia()" class="btn-add bg-purple-600 text-white font-bold rounded-2xl shadow-md btn-bounce">
+              <i data-lucide="plus" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <div id="panitia-master-list" class="space-y-2 max-h-[200px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- PIN per Anggota -->
+        <div class="border-t border-gray-100 pt-5">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PIN per Anggota</p>
+            <button onclick="renderMemberPinList()" class="btn-delete bg-gray-100 hover:bg-gray-200 rounded-lg" title="Refresh">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-gray-500"></i>
+            </button>
+          </div>
+          <p class="text-[10px] text-gray-400 mb-3">Setiap anggota bisa punya PIN sendiri. Jika belum diset, pakai PIN bersama.</p>
+          <div id="member-pin-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+            <p class="text-xs text-gray-400 text-center py-2">Memuat...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Audit Pengeluaran -->
+      <div id="section-audit" class="hidden glass-card rounded-3xl p-6 max-w-md mx-auto">
+        <div class="flex items-center gap-3 mb-5 border-b border-gray-100 pb-4">
+          <div class="p-2 bg-amber-50 rounded-lg"><i data-lucide="search" class="w-5 h-5 text-amber-600"></i></div>
+          <div class="flex-1">
+            <h2 class="text-gray-800 font-bold text-sm">AUDIT PENGELUARAN</h2>
+            <p class="text-[10px] text-gray-400">Koreksi atau hapus data yang salah input</p>
+          </div>
+          <button onclick="loadAuditList()" class="btn-delete bg-gray-100 hover:bg-gray-200 rounded-xl" title="Refresh">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-gray-500"></i>
+          </button>
+        </div>
+
+        <!-- Edit Form (hidden by default) -->
+        <div id="audit-edit-form" class="hidden mb-4 p-4 bg-amber-50 rounded-2xl border border-amber-200 space-y-3">
+          <p class="text-xs font-bold text-amber-700">Edit Data Pengeluaran</p>
+          <input type="hidden" id="audit-edit-key">
+          <input type="hidden" id="audit-edit-waktu">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500">Nama PJ</label>
+              <input type="text" id="audit-pj" class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none input-focus">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500">Jabatan PJ</label>
+              <input type="text" id="audit-jabatanPj" class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none input-focus">
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] font-bold text-gray-500">Keterangan</label>
+            <input type="text" id="audit-keterangan" class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none input-focus">
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500">Total (Rp)</label>
+              <input type="number" id="audit-total" class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none input-focus">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500">Qty</label>
+              <input type="number" id="audit-qty" class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none input-focus">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500">Satuan</label>
+              <input type="text" id="audit-satuan" class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none input-focus">
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] font-bold text-gray-500">Kategori</label>
+            <input type="text" id="audit-kategori" class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none input-focus">
+          </div>
+          <div class="flex gap-2">
+            <button onclick="saveAuditEdit()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl text-sm btn-bounce">Simpan</button>
+            <button onclick="cancelAuditEdit()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl text-sm">Batal</button>
+          </div>
+        </div>
+
+        <!-- Audit Record List -->
+        <div id="audit-list" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+          <p class="text-xs text-gray-400 text-center py-4">Membuka tab Audit untuk memuat data...</p>
+        </div>
+      </div>
+
+      <!-- Section: LPJ Info -->
+      <div id="section-lpj" class="hidden glass-card rounded-3xl p-6 max-w-md mx-auto space-y-6">
+
+        <!-- Info Dasar -->
+        <div>
+          <div class="flex items-center gap-3 mb-5 border-b border-gray-100 pb-4">
+            <div class="p-2 bg-blue-50 rounded-lg"><i data-lucide="file-text" class="w-5 h-5 text-[#003399]"></i></div>
+            <div><h2 class="text-gray-800 font-bold text-sm">INFO LAPORAN (LPJ)</h2><p class="text-[10px] text-gray-400">Header yang tampil di PDF cetakan</p></div>
+          </div>
+          <div class="space-y-3">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Nama Lembaga</label>
+              <input type="text" id="lpj-lembaga" placeholder="TPQ AL-MAIDAH KARANGSONO"
+                class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Alamat</label>
+              <input type="text" id="lpj-alamat" placeholder="Karangsono, ..."
+                class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Nama Kegiatan</label>
+              <input type="text" id="lpj-kegiatan" placeholder="WISUDA SANTRI"
+                class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm">
+            </div>
+            <button onclick="saveLpjInfo()" class="w-full bca-gradient text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 btn-bounce hover:brightness-110 transition-all">
+              Simpan Info LPJ
+            </button>
+          </div>
+        </div>
+
+        <!-- Logo Upload -->
+        <div class="border-t border-gray-100 pt-5">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Logo Lembaga (opsional)</p>
+          <div class="flex gap-3 items-center mb-3">
+            <div id="logo-preview" class="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
+              <i data-lucide="image" class="w-6 h-6 text-gray-400"></i>
+            </div>
+            <div class="flex-1 space-y-1">
+              <input type="file" id="logo-input" accept="image/*" onchange="previewLogo(this)"
+                class="w-full text-xs text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded-xl file:border-0 file:bg-blue-50 file:text-blue-700 file:font-bold">
+              <p class="text-[10px] text-gray-400">Maks 200 KB. Tampil di header PDF.</p>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="saveLogo()" class="flex-1 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 rounded-2xl btn-bounce transition-all text-sm">
+              Simpan Logo
+            </button>
+            <button onclick="removeLogo()" class="bg-red-50 hover:bg-red-100 text-red-500 font-bold py-3 px-4 rounded-2xl btn-bounce transition-all text-sm border border-red-100">
+              Hapus
+            </button>
+          </div>
+        </div>
+
+        <!-- Export / Import -->
+        <div class="border-t border-gray-100 pt-5">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Data Transaksi</p>
+          <div class="flex gap-2">
+            <button onclick="exportExcelAdmin()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-2xl btn-bounce transition-all text-xs flex items-center justify-center gap-1">
+              <i data-lucide="download" class="w-4 h-4"></i> Export Excel
+            </button>
+            <button onclick="importExcelPrompt()" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-2xl btn-bounce transition-all text-xs flex items-center justify-center gap-1">
+              <i data-lucide="upload" class="w-4 h-4"></i> Import Excel
+            </button>
+          </div>
+          <p class="text-[10px] text-gray-400 mt-2 text-center">Import: kolom Keterangan, Total, PJ, Kategori, Qty, Satuan, Jabatan PJ</p>
+        </div>
+
+        <!-- Penandatangan -->
+        <div class="border-t border-gray-100 pt-5">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Penandatangan LPJ</p>
+          <div class="space-y-3">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1">Penanggung Jawab Kegiatan</label>
+              <input type="text" id="str-pj" placeholder="Nama lengkap..."
+                class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm uppercase">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1">Ketua Panitia</label>
+              <input type="text" id="str-ketua" placeholder="Nama lengkap..."
+                class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm uppercase">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1">Sekretaris</label>
+              <input type="text" id="str-sekretaris" placeholder="Nama lengkap..."
+                class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm uppercase">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1">Bendahara</label>
+              <input type="text" id="str-bendahara" placeholder="Nama lengkap..."
+                class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm uppercase">
+            </div>
+            <button onclick="saveStruktur()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-200 btn-bounce transition-all">
+              Simpan Penandatangan
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Section: Export/Import (hidden, accessed via buttons above) -->
+
+      <!-- Section: Akun (Admin PIN + Member PIN) -->
+      <div id="section-akun" class="hidden glass-card rounded-3xl p-6 max-w-md mx-auto space-y-6">
+
+        <!-- Admin PIN -->
+        <div>
+          <div class="flex items-center gap-3 mb-4 border-b border-gray-100 pb-4">
+            <div class="p-2 bg-yellow-50 rounded-lg"><i data-lucide="key" class="w-5 h-5 text-yellow-600"></i></div>
+            <div><h2 class="text-gray-800 font-bold text-sm">PIN ADMIN</h2><p class="text-[10px] text-gray-400">Minimal 4 karakter angka</p></div>
+          </div>
+          <div class="space-y-3">
+            <input type="password" id="new-pin" placeholder="PIN admin baru" inputmode="numeric" maxlength="8"
+              class="w-full bg-gray-50 px-4 py-4 rounded-2xl border border-gray-100 input-focus outline-none text-center text-xl font-bold tracking-widest text-gray-700">
+            <input type="password" id="confirm-pin" placeholder="Konfirmasi PIN admin" inputmode="numeric" maxlength="8"
+              class="w-full bg-gray-50 px-4 py-4 rounded-2xl border border-gray-100 input-focus outline-none text-center text-xl font-bold tracking-widest text-gray-700">
+            <p id="pin-change-error" class="text-red-500 text-xs text-center hidden"></p>
+            <button onclick="changePin()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-yellow-200 btn-bounce transition-all">
+              Simpan PIN Admin
+            </button>
+          </div>
+        </div>
+
+        <!-- Member PIN -->
+        <div class="border-t border-gray-100 pt-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="p-2 bg-green-50 rounded-lg"><i data-lucide="users" class="w-5 h-5 text-green-600"></i></div>
+            <div><h2 class="text-gray-800 font-bold text-sm">PIN BERSAMA ANGGOTA</h2><p class="text-[10px] text-gray-400">Dipakai jika anggota belum punya PIN sendiri</p></div>
+          </div>
+          <div class="space-y-3">
+            <input type="password" id="new-member-pin" placeholder="PIN anggota baru" inputmode="numeric" maxlength="8"
+              class="w-full bg-gray-50 px-4 py-4 rounded-2xl border border-gray-100 input-focus outline-none text-center text-xl font-bold tracking-widest text-gray-700">
+            <input type="password" id="confirm-member-pin" placeholder="Konfirmasi PIN anggota" inputmode="numeric" maxlength="8"
+              class="w-full bg-gray-50 px-4 py-4 rounded-2xl border border-gray-100 input-focus outline-none text-center text-xl font-bold tracking-widest text-gray-700">
+            <p id="member-pin-error" class="text-red-500 text-xs text-center hidden"></p>
+            <button onclick="changeMemberPin()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-green-200 btn-bounce transition-all">
+              Simpan PIN Anggota
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /admin-panel -->
+
+    <footer class="p-8 text-center mt-4">
+      <p class="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">©2026 TPQ AL-MAIDAH KARANGSONO</p>
+    </footer>
+
+  </div><!-- /container -->
+
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-white text-sm font-bold shadow-xl z-[200] transition-all whitespace-nowrap"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
+  <script src="firebase.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

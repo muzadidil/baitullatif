@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Bash(*)",
+      "PowerShell(*)",
+      "Git(*)",
+      "Bash(mkdir -p \"C:/Users/LAPTOP/.claude/projects/c--xampp-htdocs-zasha-v5/memory\" && ls \"C:/Users/LAPTOP/.claude/projects/c--xampp-htdocs-zasha-v5/memory/\" 2>&1)"
+    ],
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "C:\\xampp\\htdocs\\zasha-tower\\.git",
+      "C:\\Users\\LAPTOP\\.claude\\projects\\c--xampp-htdocs-zasha-v5"
+    ]
+  }
+}
