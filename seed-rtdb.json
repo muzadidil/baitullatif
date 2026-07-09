@@ -1,14 +1,15 @@
 {
   "master": {
-    "satuan": ["Pcs", "Box", "Pack", "Kg", "Liter", "Buah", "Lembar", "Orang", "Meter", "Set"],
-    "kategori": ["Konsumsi", "Dekorasi", "Perlengkapan", "Transportasi", "Dokumentasi", "Cetak/ATK", "Honor", "Lain-lain"],
-    "namaPanitia": ["Contoh Nama 1", "Contoh Nama 2", "Contoh Nama 3"],
-    "jabatan": ["Ketua", "Wakil Ketua", "Sekretaris", "Bendahara", "Sie Acara", "Sie Konsumsi", "Sie Perlengkapan", "Sie Dokumentasi"]
+    "satuan": ["Pcs", "Box", "Pack", "Kg", "Liter", "Buah", "Lembar", "Orang", "Meter", "Set", "Unit"],
+    "kategoriKeluar": ["Listrik & Air", "Kebersihan", "Perawatan & Pembangunan", "Honor / Bisyaroh", "Konsumsi", "Cetak / ATK", "Kegiatan", "Lain-lain"],
+    "kategoriMasuk": ["Infaq Jumat", "Kotak Amal", "Donatur", "Zakat & Sedekah", "Bantuan / Hibah", "Lain-lain"],
+    "namaPengurus": ["Contoh Nama 1", "Contoh Nama 2", "Contoh Nama 3"],
+    "jabatan": ["Penasehat", "Ketua", "Wakil Ketua", "Sekretaris", "Bendahara", "Sie Ibadah", "Sie Pendidikan", "Sie Pembangunan", "Sie Kebersihan", "Sie Humas"]
   },
   "struktur": {
-    "pj": "Nama Penanggung Jawab",
-    "ketua": "Nama Ketua Panitia",
+    "ketua": "Nama Ketua Takmir",
+    "sekretaris": "Nama Sekretaris",
     "bendahara": "Nama Bendahara",
-    "sekretaris": "Nama Sekretaris"
+    "penasehat": "Nama Penasehat"
   }
 }

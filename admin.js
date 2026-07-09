@@ -1,17 +1,25 @@
 /* ==========================================
-   TPQ AL-MAIDAH - Admin Panel Logic
+   MASJID JAMIK BAITULLATIF - Admin Panel Logic
    ========================================== */
 
 lucide.createIcons();
 
 let adminConfig = {};
 let masterData = {};
-let panitiaRecords = [];
+let pengurusRecords = [];
 let jabatanList = [];
 let strukturData = {};
+let kegiatanRecords = [];
 
 const LICENSE_CODE = 'MUZADIDIL';
-const FIXED_JABATAN = ['Ketua', 'Sekretaris', 'Bendahara', 'Penasehat'];
+const FIXED_JABATAN = ['Penasehat', 'Ketua', 'Sekretaris', 'Bendahara'];
+const MENU_KEYS = ['keluar', 'masuk', 'laporan', 'surat', 'pengurus'];
+
+// ===== SETUP GATE =====
+if (!FIREBASE_CONFIGURED) {
+  document.getElementById('setup-banner').classList.remove('hidden');
+  document.getElementById('pin-gate').classList.add('hidden');
+}
 
 // ===== PIN HASHING =====
 async function hashPin(pin) {
@@ -21,6 +29,7 @@ async function hashPin(pin) {
 
 // ===== RESET PIN WITH LICENSE =====
 async function resetPinByLicense() {
+  if (!db) { showToast(NOT_CONFIGURED_MSG, true); return; }
   const code = document.getElementById('license-input').value.trim().toUpperCase();
   if (code !== LICENSE_CODE) { showToast('Kode lisensi salah', true); return; }
   const defaultHash = await hashPin('1234');
@@ -46,13 +55,16 @@ async function verifyPin() {
   if (!input) { errEl.textContent = 'Masukkan PIN terlebih dahulu'; errEl.classList.remove('hidden'); return; }
 
   const res = await Api.getAdminConfig();
+  if (res.status === 'error' && !FIREBASE_CONFIGURED) { errEl.textContent = NOT_CONFIGURED_MSG; errEl.classList.remove('hidden'); return; }
   const storedHash = res.data && res.data.pinHash;
   const inputHash = await hashPin(input);
 
   if (!storedHash) {
     const defaultHash = await hashPin('1234');
     if (inputHash !== defaultHash) { errEl.textContent = 'PIN salah. PIN default: 1234'; errEl.classList.remove('hidden'); document.getElementById('pin-input').value = ''; return; }
-    const initConfig = { pinHash: defaultHash, memberPinHash: defaultHash, menu: { keluar: true, masuk: true, panitia: true, riwayat: true } };
+    const menu = {};
+    MENU_KEYS.forEach(k => menu[k] = true);
+    const initConfig = { pinHash: defaultHash, memberPinHash: defaultHash, menu: menu };
     await Api.saveAdminConfig(initConfig);
     adminConfig = initConfig;
   } else {
@@ -67,31 +79,50 @@ async function verifyPin() {
 
 // ===== LOAD PANEL =====
 async function loadAdminPanel() {
-  const [masterRes, panitiaRes, strSnap] = await Promise.all([
+  const [masterRes, pengurusRes, strukturRes, kegiatanRes] = await Promise.all([
     Api.getMasterData(),
-    Api.getAllPanitiaRecords(),
-    db.ref('struktur').once('value')
+    Api.getAllPengurusRecords(),
+    Api.getStruktur(),
+    Api.getKegiatanList('')
   ]);
   masterData = masterRes.data || {};
-  panitiaRecords = panitiaRes.data || [];
+  pengurusRecords = pengurusRes.data || [];
   jabatanList = toArr(masterData.jabatan);
-  strukturData = strSnap.val() || {};
+  strukturData = strukturRes.data || {};
+  kegiatanRecords = kegiatanRes.data || [];
 
   renderMenuSettings();
-  renderKategoriList();
+  renderKegiatanList();
+  renderBukuSelectors();
+  renderKategoriKeluarList();
+  renderKategoriMasukList();
   renderSatuanList();
   renderJabatanList();
-  renderPanitiaRecords();
-  renderPanitiaList();
+  renderPengurusRecords();
+  renderPengurusList();
   renderMemberPinList();
-  renderLpjInfo();
+  renderOrgInfo();
   renderStruktur();
   renderLogoPreview();
 }
 
+// Fill the buku selectors on audit & import with kegiatan options
+function renderBukuSelectors() {
+  ['audit-buku', 'import-buku'].forEach(id => {
+    const el = document.getElementById(id);
+    const current = el.value;
+    el.innerHTML = '<option value="masjid">Kas Masjid</option>';
+    kegiatanRecords.forEach(k => {
+      const suffix = k.status === 'selesai' ? ' (selesai)' : '';
+      el.innerHTML += `<option value="${esc(k.id)}">Kegiatan: ${esc(k.nama)}${esc(suffix)}</option>`;
+    });
+    if ([...el.options].some(o => o.value === current)) el.value = current;
+  });
+}
+
 // ===== SECTION SWITCHING =====
 function showSection(name) {
-  ['menu','kategori','satuan','jabatan','panitia','audit','lpj','akun'].forEach(s => {
+  ['menu', 'kegiatan', 'kategori', 'satuan', 'jabatan', 'pengurus', 'audit', 'identitas', 'akun'].forEach(s => {
     document.getElementById('section-' + s).classList.add('hidden');
     document.getElementById('tab-btn-' + s).className = "flex-shrink-0 py-2.5 px-3 text-[10px] font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-all";
   });
@@ -103,8 +134,8 @@ function showSection(name) {
 
 // ===== MENU SETTINGS =====
 function renderMenuSettings() {
-  const menu = adminConfig.menu || { keluar: true, masuk: true, panitia: true, riwayat: true };
-  ['keluar','masuk','panitia','riwayat'].forEach(key => {
+  const menu = adminConfig.menu || {};
+  MENU_KEYS.forEach(key => {
     const el = document.getElementById('menu-' + key);
     if (el) el.checked = menu[key] !== false;
   });
@@ -112,20 +143,113 @@ function renderMenuSettings() {
 
 async function saveMenuSettings() {
   const menu = {};
-  ['keluar','masuk','panitia','riwayat'].forEach(key => { menu[key] = document.getElementById('menu-' + key).checked; });
+  MENU_KEYS.forEach(key => { menu[key] = document.getElementById('menu-' + key).checked; });
   const newConfig = Object.assign({}, adminConfig, { menu });
   const res = await Api.saveAdminConfig(newConfig);
   if (res.status === 'success') { adminConfig = newConfig; showToast('Pengaturan menu disimpan'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
+// ===== KEGIATAN =====
+function renderKegiatanList() {
+  const el = document.getElementById('kegiatan-list');
+  if (!kegiatanRecords.length) {
+    el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Belum ada kegiatan. Tambahkan untuk membuka buku kas kegiatan.</p>';
+    return;
+  }
+  el.innerHTML = kegiatanRecords.map((k, i) => {
+    const aktif = k.status !== 'selesai';
+    return `
+    <div class="p-3 bg-gray-50 rounded-xl border border-gray-100">
+      <div class="flex items-center gap-2">
+        <span class="text-[9px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${aktif ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}">${aktif ? 'AKTIF' : 'SELESAI'}</span>
+        <span id="kegiatan-text-${i}" class="flex-1 text-sm font-medium text-gray-700 truncate">${esc(k.nama)}</span>
+        <input id="kegiatan-input-${i}" class="hidden flex-1 bg-white border border-amber-200 rounded-lg px-2 py-1 text-sm text-gray-700 outline-none" value="${esc(k.nama)}">
+        <button onclick="toggleRenameKegiatan(${i})" class="btn-delete bg-amber-50 hover:bg-amber-100 rounded-lg transition-all" title="Ganti nama">
+          <i data-lucide="pencil" class="w-4 h-4 text-amber-600"></i>
+        </button>
+        <button id="kegiatan-save-${i}" onclick="saveRenameKegiatan(${i})" class="hidden btn-delete bg-green-50 hover:bg-green-100 rounded-lg transition-all">
+          <i data-lucide="check" class="w-4 h-4 text-green-500"></i>
+        </button>
+      </div>
+      <div class="flex gap-1.5 mt-2">
+        <button onclick="toggleStatusKegiatan(${i})" class="flex-1 ${aktif ? 'bg-gray-100 hover:bg-gray-200 text-gray-600' : 'bg-green-50 hover:bg-green-100 text-green-700'} font-bold py-1.5 rounded-lg text-[10px] btn-bounce flex items-center justify-center gap-1">
+          <i data-lucide="${aktif ? 'flag' : 'rotate-ccw'}" class="w-3 h-3"></i> ${aktif ? 'Tandai Selesai' : 'Aktifkan Lagi'}
+        </button>
+        <button onclick="removeKegiatan(${i})" class="flex-1 bg-red-50 hover:bg-red-100 text-red-500 font-bold py-1.5 rounded-lg text-[10px] btn-bounce flex items-center justify-center gap-1">
+          <i data-lucide="trash-2" class="w-3 h-3"></i> Hapus
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+async function addKegiatan() {
+  const input = document.getElementById('new-kegiatan');
+  const val = clean(input.value, 100);
+  if (!val) return;
+  if (kegiatanRecords.some(k => k.nama.toLowerCase() === val.toLowerCase())) { showToast('Nama kegiatan sudah ada', true); return; }
+  const res = await Api.simpanKegiatan(val);
+  if (res.status === 'success') {
+    input.value = '';
+    const list = await Api.getKegiatanList('');
+    kegiatanRecords = list.data || [];
+    renderKegiatanList();
+    renderBukuSelectors();
+    showToast('Kegiatan ditambahkan');
+  } else { showToast('Gagal: ' + res.message, true); }
+}
+
+function toggleRenameKegiatan(i) {
+  document.getElementById('kegiatan-text-' + i).classList.toggle('hidden');
+  document.getElementById('kegiatan-input-' + i).classList.toggle('hidden');
+  document.getElementById('kegiatan-save-' + i).classList.toggle('hidden');
+}
+
+async function saveRenameKegiatan(i) {
+  const newVal = clean(document.getElementById('kegiatan-input-' + i).value, 100);
+  if (!newVal) return;
+  const res = await Api.updateKegiatan(kegiatanRecords[i].id, { nama: newVal });
+  if (res.status === 'success') {
+    kegiatanRecords[i].nama = newVal;
+    renderKegiatanList();
+    renderBukuSelectors();
+    showToast('Nama kegiatan diperbarui');
+  } else { showToast('Gagal: ' + res.message, true); }
+}
+
+async function toggleStatusKegiatan(i) {
+  const k = kegiatanRecords[i];
+  const newStatus = k.status === 'selesai' ? 'aktif' : 'selesai';
+  const res = await Api.updateKegiatan(k.id, { status: newStatus });
+  if (res.status === 'success') {
+    k.status = newStatus;
+    renderKegiatanList();
+    renderBukuSelectors();
+    showToast('Status kegiatan: ' + newStatus);
+  } else { showToast('Gagal: ' + res.message, true); }
+}
+
+async function removeKegiatan(i) {
+  const k = kegiatanRecords[i];
+  if (!confirm('Hapus kegiatan "' + k.nama + '"?\n\nPERHATIAN: Seluruh transaksi kas kegiatan ini ikut TERHAPUS dan tidak bisa dikembalikan.')) return;
+  const res = await Api.deleteKegiatan(k.id);
+  if (res.status === 'success') {
+    kegiatanRecords = kegiatanRecords.filter(r => r.id !== k.id);
+    renderKegiatanList();
+    renderBukuSelectors();
+    showToast('Kegiatan dihapus');
+  } else { showToast('Gagal: ' + res.message, true); }
+}
+
 // ===== GENERIC LIST RENDERER =====
-function renderMasterList(containerId, list, removeFn, colorClass) {
+function renderMasterList(containerId, list, removeFn) {
   const el = document.getElementById(containerId);
   if (!list || list.length === 0) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Belum ada data</p>'; return; }
   el.innerHTML = list.map((item, i) => `
     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-      <span class="text-sm font-medium text-gray-700">${item}</span>
+      <span class="text-sm font-medium text-gray-700">${esc(item)}</span>
       <button onclick="${removeFn}(${i})" class="btn-delete bg-red-50 hover:bg-red-100 rounded-lg transition-all">
         <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i>
       </button>
@@ -133,51 +257,39 @@ function renderMasterList(containerId, list, removeFn, colorClass) {
   lucide.createIcons();
 }
 
-// ===== KATEGORI =====
-function renderKategoriList() { renderMasterList('kategori-list', toArr(masterData.kategori), 'removeKategori'); }
-
-async function addKategori() {
-  const input = document.getElementById('new-kategori');
+async function addToMasterList(masterKey, inputId, renderFn, label) {
+  const input = document.getElementById(inputId);
   const val = clean(input.value, 50);
   if (!val) return;
-  const list = toArr(masterData.kategori);
-  if (list.map(s => s.toLowerCase()).includes(val.toLowerCase())) { showToast('Kategori sudah ada', true); return; }
+  const list = toArr(masterData[masterKey]);
+  if (list.map(s => s.toLowerCase()).includes(val.toLowerCase())) { showToast(label + ' sudah ada', true); return; }
   list.push(val);
-  const res = await Api.updateMasterList('kategori', list);
-  if (res.status === 'success') { masterData.kategori = list; input.value = ''; renderKategoriList(); showToast('Kategori ditambahkan'); }
+  const res = await Api.updateMasterList(masterKey, list);
+  if (res.status === 'success') { masterData[masterKey] = list; input.value = ''; renderFn(); showToast(label + ' ditambahkan'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
-async function removeKategori(index) {
-  const list = toArr(masterData.kategori);
+async function removeFromMasterList(masterKey, index, renderFn, label) {
+  const list = toArr(masterData[masterKey]);
   list.splice(index, 1);
-  const res = await Api.updateMasterList('kategori', list);
-  if (res.status === 'success') { masterData.kategori = list; renderKategoriList(); showToast('Kategori dihapus'); }
+  const res = await Api.updateMasterList(masterKey, list);
+  if (res.status === 'success') { masterData[masterKey] = list; renderFn(); showToast(label + ' dihapus'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
+
+// ===== KATEGORI KELUAR / MASUK =====
+function renderKategoriKeluarList() { renderMasterList('kategori-keluar-list', toArr(masterData.kategoriKeluar), 'removeKategoriKeluar'); }
+function renderKategoriMasukList() { renderMasterList('kategori-masuk-list', toArr(masterData.kategoriMasuk), 'removeKategoriMasuk'); }
+
+function addKategoriKeluar() { addToMasterList('kategoriKeluar', 'new-kategori-keluar', renderKategoriKeluarList, 'Kategori'); }
+function removeKategoriKeluar(i) { removeFromMasterList('kategoriKeluar', i, renderKategoriKeluarList, 'Kategori'); }
+function addKategoriMasuk() { addToMasterList('kategoriMasuk', 'new-kategori-masuk', renderKategoriMasukList, 'Sumber dana'); }
+function removeKategoriMasuk(i) { removeFromMasterList('kategoriMasuk', i, renderKategoriMasukList, 'Sumber dana'); }
 
 // ===== SATUAN =====
 function renderSatuanList() { renderMasterList('satuan-list', toArr(masterData.satuan), 'removeSatuan'); }
-
-async function addSatuan() {
-  const input = document.getElementById('new-satuan');
-  const val = clean(input.value, 50);
-  if (!val) return;
-  const list = toArr(masterData.satuan);
-  if (list.map(s => s.toLowerCase()).includes(val.toLowerCase())) { showToast('Satuan sudah ada', true); return; }
-  list.push(val);
-  const res = await Api.updateMasterList('satuan', list);
-  if (res.status === 'success') { masterData.satuan = list; input.value = ''; renderSatuanList(); showToast('Satuan ditambahkan'); }
-  else { showToast('Gagal: ' + res.message, true); }
-}
-
-async function removeSatuan(index) {
-  const list = toArr(masterData.satuan);
-  list.splice(index, 1);
-  const res = await Api.updateMasterList('satuan', list);
-  if (res.status === 'success') { masterData.satuan = list; renderSatuanList(); showToast('Satuan dihapus'); }
-  else { showToast('Gagal: ' + res.message, true); }
-}
+function addSatuan() { addToMasterList('satuan', 'new-satuan', renderSatuanList, 'Satuan'); }
+function removeSatuan(i) { removeFromMasterList('satuan', i, renderSatuanList, 'Satuan'); }
 
 // ===== JABATAN (with protected entries) =====
 function renderJabatanList() {
@@ -189,8 +301,8 @@ function renderJabatanList() {
     return `
     <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
       ${isFixed ? '<i data-lucide="lock" class="w-3.5 h-3.5 text-gray-400 flex-shrink-0"></i>' : '<i data-lucide="briefcase" class="w-3.5 h-3.5 text-indigo-400 flex-shrink-0"></i>'}
-      <span id="jabatan-text-${i}" class="flex-1 text-sm font-medium text-gray-700">${item}</span>
-      <input id="jabatan-input-${i}" class="hidden flex-1 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-sm text-gray-700 outline-none" value="${item}">
+      <span id="jabatan-text-${i}" class="flex-1 text-sm font-medium text-gray-700">${esc(item)}</span>
+      <input id="jabatan-input-${i}" class="hidden flex-1 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-sm text-gray-700 outline-none" value="${esc(item)}">
       <button onclick="toggleRenameJabatan(${i})" class="btn-delete bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all" title="Ganti nama">
         <i data-lucide="pencil" class="w-4 h-4 text-indigo-500"></i>
       </button>
@@ -240,22 +352,22 @@ async function removeJabatan(index) {
   else { showToast('Gagal: ' + res.message, true); }
 }
 
-// ===== PANITIA RECORDS =====
-function renderPanitiaRecords() {
-  const el = document.getElementById('panitia-records-list');
-  if (!panitiaRecords || panitiaRecords.length === 0) {
-    el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Belum ada susunan panitia</p>';
+// ===== PENGURUS RECORDS =====
+function renderPengurusRecords() {
+  const el = document.getElementById('pengurus-records-list');
+  if (!pengurusRecords || pengurusRecords.length === 0) {
+    el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Belum ada susunan pengurus</p>';
     return;
   }
-  el.innerHTML = panitiaRecords.map(item => `
+  el.innerHTML = pengurusRecords.map(item => `
     <div class="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
-      <span class="flex-1 text-sm font-medium text-gray-700 truncate">${item.nama}</span>
+      <span class="flex-1 text-sm font-medium text-gray-700 truncate">${esc(item.nama)}</span>
       <select class="jabatan-select bg-white rounded-xl border border-gray-200 text-xs font-medium text-gray-700 appearance-none outline-none input-focus"
-        onchange="updateJabatan('${item.key}', this.value)">
-        ${jabatanList.map(j => `<option value="${j}" ${j === item.jabatan ? 'selected' : ''}>${j}</option>`).join('')}
-        ${!jabatanList.includes(item.jabatan) && item.jabatan ? `<option value="${item.jabatan}" selected>${item.jabatan}</option>` : ''}
+        onchange="updateJabatan('${esc(item.key)}', this.value)">
+        ${jabatanList.map(j => `<option value="${esc(j)}" ${j === item.jabatan ? 'selected' : ''}>${esc(j)}</option>`).join('')}
+        ${!jabatanList.includes(item.jabatan) && item.jabatan ? `<option value="${esc(item.jabatan)}" selected>${esc(item.jabatan)}</option>` : ''}
       </select>
-      <button onclick="deletePanitiaRecord('${item.key}')" class="btn-delete bg-red-50 hover:bg-red-100 rounded-lg transition-all flex-shrink-0">
+      <button onclick="deletePengurusRecord('${esc(item.key)}')" class="btn-delete bg-red-50 hover:bg-red-100 rounded-lg transition-all flex-shrink-0">
         <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i>
       </button>
     </div>`).join('');
@@ -263,55 +375,59 @@ function renderPanitiaRecords() {
 }
 
 async function updateJabatan(key, jabatan) {
-  const res = await Api.updatePanitiaJabatan(key, jabatan);
-  if (res.status === 'success') { const r = panitiaRecords.find(r => r.key === key); if (r) r.jabatan = jabatan; showToast('Jabatan diperbarui'); }
+  const res = await Api.updatePengurusJabatan(key, jabatan);
+  if (res.status === 'success') { const r = pengurusRecords.find(r => r.key === key); if (r) r.jabatan = jabatan; showToast('Jabatan diperbarui'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
-async function deletePanitiaRecord(key) {
-  const res = await Api.deletePanitia(key);
-  if (res.status === 'success') { panitiaRecords = panitiaRecords.filter(r => r.key !== key); renderPanitiaRecords(); showToast('Panitia dihapus'); }
+async function deletePengurusRecord(key) {
+  const res = await Api.deletePengurus(key);
+  if (res.status === 'success') { pengurusRecords = pengurusRecords.filter(r => r.key !== key); renderPengurusRecords(); showToast('Pengurus dihapus'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
-// ===== PANITIA MASTER NAMA =====
-function renderPanitiaList() { renderMasterList('panitia-master-list', toArr(masterData.namaPanitia), 'removePanitia'); }
+// ===== PENGURUS MASTER NAMA =====
+function renderPengurusList() { renderMasterList('pengurus-master-list', toArr(masterData.namaPengurus), 'removePengurus'); }
 
-async function addPanitia() {
-  const input = document.getElementById('new-panitia');
+async function addPengurus() {
+  const input = document.getElementById('new-pengurus');
   const val = clean(input.value, 100).toUpperCase();
   if (!val) return;
-  const list = toArr(masterData.namaPanitia);
+  const list = toArr(masterData.namaPengurus);
   if (list.map(s => s.toUpperCase()).includes(val)) { showToast('Nama sudah ada', true); return; }
   list.push(val);
-  const res = await Api.updateMasterList('namaPanitia', list);
-  if (res.status === 'success') { masterData.namaPanitia = list; input.value = ''; renderPanitiaList(); showToast('Nama panitia ditambahkan'); }
+  const res = await Api.updateMasterList('namaPengurus', list);
+  if (res.status === 'success') { masterData.namaPengurus = list; input.value = ''; renderPengurusList(); showToast('Nama pengurus ditambahkan'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
-async function removePanitia(index) {
-  const list = toArr(masterData.namaPanitia);
+async function removePengurus(index) {
+  const list = toArr(masterData.namaPengurus);
   list.splice(index, 1);
-  const res = await Api.updateMasterList('namaPanitia', list);
-  if (res.status === 'success') { masterData.namaPanitia = list; renderPanitiaList(); showToast('Nama dihapus'); }
+  const res = await Api.updateMasterList('namaPengurus', list);
+  if (res.status === 'success') { masterData.namaPengurus = list; renderPengurusList(); showToast('Nama dihapus'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
-// ===== LPJ INFO =====
-function renderLpjInfo() {
-  const info = adminConfig.lpjInfo || {};
-  document.getElementById('lpj-lembaga').value = info.lembaga || '';
-  document.getElementById('lpj-alamat').value = info.alamat || '';
-  document.getElementById('lpj-kegiatan').value = info.kegiatan || '';
+// ===== IDENTITAS (org info) =====
+function renderOrgInfo() {
+  const info = adminConfig.orgInfo || {};
+  document.getElementById('org-lembaga').value = info.lembaga || '';
+  document.getElementById('org-alamat').value = info.alamat || '';
+  document.getElementById('org-kota').value = info.kota || '';
+  document.getElementById('org-kode-surat').value = info.kodeSurat || '';
 }
 
-async function saveLpjInfo() {
-  const lembaga = clean(document.getElementById('lpj-lembaga').value, 100) || 'TPQ AL-MAIDAH KARANGSONO';
-  const alamat = clean(document.getElementById('lpj-alamat').value, 200);
-  const kegiatan = clean(document.getElementById('lpj-kegiatan').value, 100) || 'WISUDA SANTRI';
-  const newConfig = Object.assign({}, adminConfig, { lpjInfo: { lembaga, alamat, kegiatan } });
+async function saveOrgInfo() {
+  const orgInfo = {
+    lembaga: clean(document.getElementById('org-lembaga').value, 100) || 'MASJID JAMIK BAITULLATIF',
+    alamat: clean(document.getElementById('org-alamat').value, 200) || 'Dusun Krajan, Desa Karangsono, Kecamatan Bangsalsari, Kabupaten Jember',
+    kota: clean(document.getElementById('org-kota').value, 50) || 'Karangsono',
+    kodeSurat: clean(document.getElementById('org-kode-surat').value, 30).toUpperCase() || 'TKM-BTL'
+  };
+  const newConfig = Object.assign({}, adminConfig, { orgInfo });
   const res = await Api.saveAdminConfig(newConfig);
-  if (res.status === 'success') { adminConfig = newConfig; showToast('Info LPJ disimpan'); }
+  if (res.status === 'success') { adminConfig = newConfig; showToast('Identitas disimpan'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
@@ -341,30 +457,28 @@ async function changeMemberPin() {
   const newHash = await hashPin(newPin);
   const newConfig = Object.assign({}, adminConfig, { memberPinHash: newHash });
   const res = await Api.saveAdminConfig(newConfig);
-  if (res.status === 'success') { adminConfig = newConfig; document.getElementById('new-member-pin').value = ''; document.getElementById('confirm-member-pin').value = ''; showToast('PIN anggota berhasil diubah'); }
+  if (res.status === 'success') { adminConfig = newConfig; document.getElementById('new-member-pin').value = ''; document.getElementById('confirm-member-pin').value = ''; showToast('PIN pengurus berhasil diubah'); }
   else { showToast('Gagal: ' + res.message, true); }
 }
 
-// ===== STRUKTUR (LPJ signatories) =====
+// ===== STRUKTUR (penandatangan) =====
 function renderStruktur() {
-  document.getElementById('str-pj').value = strukturData.pj || '';
   document.getElementById('str-ketua').value = strukturData.ketua || '';
   document.getElementById('str-sekretaris').value = strukturData.sekretaris || '';
   document.getElementById('str-bendahara').value = strukturData.bendahara || '';
+  document.getElementById('str-penasehat').value = strukturData.penasehat || '';
 }
 
 async function saveStruktur() {
   const data = {
-    pj: clean(document.getElementById('str-pj').value, 100),
-    ketua: clean(document.getElementById('str-ketua').value, 100),
-    sekretaris: clean(document.getElementById('str-sekretaris').value, 100),
-    bendahara: clean(document.getElementById('str-bendahara').value, 100)
+    ketua: document.getElementById('str-ketua').value,
+    sekretaris: document.getElementById('str-sekretaris').value,
+    bendahara: document.getElementById('str-bendahara').value,
+    penasehat: document.getElementById('str-penasehat').value
   };
-  try {
-    await db.ref('struktur').set(data);
-    strukturData = data;
-    showToast('Penandatangan disimpan');
-  } catch (e) { showToast('Gagal: ' + e.message, true); }
+  const res = await Api.saveStruktur(data);
+  if (res.status === 'success') { strukturData = data; showToast('Penandatangan disimpan'); }
+  else { showToast('Gagal: ' + res.message, true); }
 }
 
 // ===== LOGO =====
@@ -411,39 +525,41 @@ async function removeLogo() {
   } else { showToast('Gagal: ' + res.message, true); }
 }
 
-// ===== EXPORT EXCEL (admin) =====
+// ===== EXPORT EXCEL (all books) =====
+function sheetName(base) {
+  // Excel sheet names: max 31 chars, no : \ / ? * [ ]
+  return base.replace(/[:\\\/\?\*\[\]]/g, ' ').slice(0, 31);
+}
+
 async function exportExcelAdmin() {
   showToast('Menyiapkan export...');
-  const [pengRes, pemRes] = await Promise.all([
-    db.ref('pengeluaran').once('value'),
-    db.ref('pemasukan').once('value')
-  ]);
-  const pengVal = pengRes.val() || {};
-  const pemVal = pemRes.val() || {};
-
-  const fmtDate = (ms) => ms ? new Date(ms).toLocaleDateString('id-ID') : '-';
-  const fmtTime = (ms) => ms ? new Date(ms).toLocaleString('id-ID') : '-';
-
-  const pengRows = Object.values(pengVal).map(r => ({
-    'Waktu': fmtTime(r.waktu), 'PJ': r.pj || '-', 'Jabatan PJ': r.jabatanPj || '-',
-    'Keterangan': r.keterangan || '-', 'Total': r.total || 0,
-    'Qty': r.qty || 0, 'Satuan': r.satuan || '-', 'Kategori': r.kategori || '-'
-  }));
-  pengRows.sort((a, b) => a.Waktu < b.Waktu ? 1 : -1);
-
-  const pemRows = Object.values(pemVal).map(r => ({
-    'Waktu': fmtTime(r.waktu), 'PJ': r.pj || '-', 'Nominal': r.nominal || 0, 'Keterangan': r.keterangan || '-'
-  }));
-  pemRows.sort((a, b) => a.Waktu < b.Waktu ? 1 : -1);
+  const bukuList = [{ id: 'masjid', nama: 'Masjid' }].concat(
+    kegiatanRecords.map(k => ({ id: k.id, nama: k.nama }))
+  );
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pengRows), 'Pengeluaran');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pemRows), 'Pemasukan');
-  XLSX.writeFile(wb, `LPJ_${new Date().toISOString().slice(0,10)}.xlsx`);
+  for (const buku of bukuList) {
+    const [kelRes, masRes] = await Promise.all([
+      Api.getAllKasRecords(buku.id, 'pengeluaran'),
+      Api.getAllKasRecords(buku.id, 'pemasukan')
+    ]);
+    const kelRows = (kelRes.data || []).map(r => ({
+      'Waktu': r.waktuFmt, 'PJ': r.pj, 'Jabatan PJ': r.jabatanPj,
+      'Keterangan': r.keterangan, 'Total': r.nominal,
+      'Qty': r.qty, 'Satuan': r.satuan, 'Kategori': r.kategori
+    }));
+    const masRows = (masRes.data || []).map(r => ({
+      'Waktu': r.waktuFmt, 'PJ': r.pj, 'Nominal': r.nominal,
+      'Keterangan': r.keterangan, 'Kategori': r.kategori
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kelRows.length ? kelRows : [{}]), sheetName(buku.nama + ' - Keluar'));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(masRows.length ? masRows : [{}]), sheetName(buku.nama + ' - Masuk'));
+  }
+  XLSX.writeFile(wb, `Keuangan_Baitullatif_${new Date().toISOString().slice(0, 10)}.xlsx`);
   showToast('File Excel berhasil diunduh');
 }
 
-// ===== IMPORT EXCEL (admin) =====
+// ===== IMPORT EXCEL =====
 function importExcelPrompt() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -454,6 +570,9 @@ function importExcelPrompt() {
 
 async function importExcelFile(file) {
   if (!file) return;
+  if (!db) { showToast(NOT_CONFIGURED_MSG, true); return; }
+  const bukuId = document.getElementById('import-buku').value;
+  const jenis = document.getElementById('import-jenis').value;
   showToast('Membaca file...');
   const reader = new FileReader();
   reader.onload = async (e) => {
@@ -465,23 +584,36 @@ async function importExcelFile(file) {
 
       let sukses = 0, gagal = 0;
       for (const row of rows) {
-        const keterangan = String(row['Keterangan'] || row['keterangan'] || '').trim();
-        const total = Number(row['Total'] || row['total'] || 0);
         const pj = String(row['PJ'] || row['pj'] || '').trim();
-        const kategori = String(row['Kategori'] || row['kategori'] || 'Lainnya').trim();
-        if (!keterangan || !pj || total <= 0) { gagal++; continue; }
+        const kategori = String(row['Kategori'] || row['kategori'] || 'Lain-lain').trim();
         try {
-          await db.ref('pengeluaran').push({
-            waktu: firebase.database.ServerValue.TIMESTAMP,
-            pj: pj.slice(0, 100),
-            jabatanPj: String(row['Jabatan PJ'] || row['jabatanPj'] || '').slice(0, 50),
-            keterangan: keterangan.slice(0, 200),
-            total: total,
-            qty: Number(row['Qty'] || row['qty'] || 1),
-            satuan: String(row['Satuan'] || row['satuan'] || 'Pcs').slice(0, 50),
-            kategori: kategori.slice(0, 50),
-            status: 'Import'
-          });
+          if (jenis === 'pemasukan') {
+            const nominal = Number(row['Nominal'] || row['nominal'] || 0);
+            if (!pj || nominal <= 0) { gagal++; continue; }
+            await db.ref('kas/' + bukuId + '/pemasukan').push({
+              waktu: firebase.database.ServerValue.TIMESTAMP,
+              pj: pj.slice(0, 100),
+              jabatanPj: String(row['Jabatan PJ'] || row['jabatanPj'] || '').slice(0, 50),
+              nominal: nominal,
+              keterangan: String(row['Keterangan'] || row['keterangan'] || '').slice(0, 200),
+              kategori: kategori.slice(0, 50)
+            });
+          } else {
+            const keterangan = String(row['Keterangan'] || row['keterangan'] || '').trim();
+            const total = Number(row['Total'] || row['total'] || 0);
+            if (!keterangan || !pj || total <= 0) { gagal++; continue; }
+            await db.ref('kas/' + bukuId + '/pengeluaran').push({
+              waktu: firebase.database.ServerValue.TIMESTAMP,
+              pj: pj.slice(0, 100),
+              jabatanPj: String(row['Jabatan PJ'] || row['jabatanPj'] || '').slice(0, 50),
+              keterangan: keterangan.slice(0, 200),
+              total: total,
+              qty: Number(row['Qty'] || row['qty'] || 1),
+              satuan: String(row['Satuan'] || row['satuan'] || 'Pcs').slice(0, 50),
+              kategori: kategori.slice(0, 50),
+              status: 'Import'
+            });
+          }
           sukses++;
         } catch { gagal++; }
       }
@@ -491,22 +623,33 @@ async function importExcelFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// ===== AUDIT PENGELUARAN =====
+// ===== AUDIT TRANSAKSI =====
 let auditRecords = [];
 let auditLoaded = false;
 
+function auditContext() {
+  return {
+    buku: document.getElementById('audit-buku').value,
+    jenis: document.getElementById('audit-jenis').value
+  };
+}
+
 async function loadAuditList() {
   auditLoaded = true;
+  cancelAuditEdit();
   document.getElementById('audit-list').innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Memuat data...</p>';
-  const res = await Api.getAllPengeluaranRecords();
+  const ctx = auditContext();
+  const res = await Api.getAllKasRecords(ctx.buku, ctx.jenis);
   auditRecords = res.data || [];
   renderAuditList();
 }
 
 function renderAuditList() {
   const el = document.getElementById('audit-list');
+  const ctx = auditContext();
+  const isMasuk = ctx.jenis === 'pemasukan';
   if (!auditRecords.length) {
-    el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Belum ada data pengeluaran</p>';
+    el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Belum ada data ' + ctx.jenis + '</p>';
     return;
   }
   const fmt = (n) => new Intl.NumberFormat('id-ID').format(n);
@@ -514,17 +657,17 @@ function renderAuditList() {
     <div class="p-3 bg-gray-50 rounded-xl border border-gray-100">
       <div class="flex items-start gap-2 mb-1">
         <div class="flex-1 min-w-0">
-          <p class="text-xs font-bold text-gray-700 truncate">${r.keterangan}</p>
-          <p class="text-[10px] text-gray-400 truncate">${r.waktuFmt} · ${r.pj}${r.jabatanPj ? ' (' + r.jabatanPj + ')' : ''}</p>
-          <p class="text-[10px] text-gray-400">${r.kategori} · ${r.qty > 0 ? r.qty + ' ' + r.satuan : ''}</p>
+          <p class="text-xs font-bold text-gray-700 truncate">${esc(r.keterangan)}</p>
+          <p class="text-[10px] text-gray-400 truncate">${esc(r.waktuFmt)} · ${esc(r.pj)}${r.jabatanPj ? ' (' + esc(r.jabatanPj) + ')' : ''}</p>
+          <p class="text-[10px] text-gray-400">${esc(r.kategori)}${!isMasuk && r.qty > 0 ? ' · ' + esc(r.qty + ' ' + r.satuan) : ''}</p>
         </div>
-        <span class="text-xs font-bold text-red-600 flex-shrink-0">Rp ${fmt(r.total)}</span>
+        <span class="text-xs font-bold ${isMasuk ? 'text-green-700' : 'text-red-600'} flex-shrink-0">${isMasuk ? '+' : '-'}Rp ${fmt(r.nominal)}</span>
       </div>
       <div class="flex gap-1.5 mt-2">
-        <button onclick="openAuditEdit(${i})" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold py-1.5 rounded-lg text-[10px] btn-bounce flex items-center justify-center gap-1">
+        <button onclick="openAuditEdit(${i})" class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1.5 rounded-lg text-[10px] btn-bounce flex items-center justify-center gap-1">
           <i data-lucide="pencil" class="w-3 h-3"></i> Edit
         </button>
-        <button onclick="confirmDeletePengeluaran('${r.key}')" class="flex-1 bg-red-50 hover:bg-red-100 text-red-500 font-bold py-1.5 rounded-lg text-[10px] btn-bounce flex items-center justify-center gap-1">
+        <button onclick="confirmDeleteKas('${esc(r.key)}')" class="flex-1 bg-red-50 hover:bg-red-100 text-red-500 font-bold py-1.5 rounded-lg text-[10px] btn-bounce flex items-center justify-center gap-1">
           <i data-lucide="trash-2" class="w-3 h-3"></i> Hapus
         </button>
       </div>
@@ -534,15 +677,19 @@ function renderAuditList() {
 
 function openAuditEdit(index) {
   const r = auditRecords[index];
+  const ctx = auditContext();
+  const isMasuk = ctx.jenis === 'pemasukan';
+  document.getElementById('audit-edit-title').textContent = 'Edit Data ' + (isMasuk ? 'Pemasukan' : 'Pengeluaran');
   document.getElementById('audit-edit-key').value = r.key;
   document.getElementById('audit-edit-waktu').value = r.waktu;
   document.getElementById('audit-pj').value = r.pj !== '-' ? r.pj : '';
   document.getElementById('audit-jabatanPj').value = r.jabatanPj || '';
   document.getElementById('audit-keterangan').value = r.keterangan !== '-' ? r.keterangan : '';
-  document.getElementById('audit-total').value = r.total;
+  document.getElementById('audit-nominal').value = r.nominal;
   document.getElementById('audit-qty').value = r.qty || 0;
   document.getElementById('audit-satuan').value = r.satuan !== '-' ? r.satuan : '';
   document.getElementById('audit-kategori').value = r.kategori !== '-' ? r.kategori : '';
+  document.querySelectorAll('.audit-grup-qty').forEach(el => el.classList.toggle('hidden', isMasuk));
   const form = document.getElementById('audit-edit-form');
   form.classList.remove('hidden');
   form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -553,21 +700,23 @@ function cancelAuditEdit() {
 }
 
 async function saveAuditEdit() {
+  const ctx = auditContext();
+  const isMasuk = ctx.jenis === 'pemasukan';
   const key = document.getElementById('audit-edit-key').value;
   const waktu = Number(document.getElementById('audit-edit-waktu').value);
   const pj = document.getElementById('audit-pj').value.trim();
   const keterangan = document.getElementById('audit-keterangan').value.trim();
-  const total = Number(document.getElementById('audit-total').value);
-  if (!pj || !keterangan || total <= 0) { showToast('PJ, keterangan, dan total wajib diisi', true); return; }
+  const nominal = Number(document.getElementById('audit-nominal').value);
+  if (!pj || nominal <= 0 || (!isMasuk && !keterangan)) { showToast('PJ, keterangan, dan nominal wajib diisi', true); return; }
   const data = {
     waktu: waktu || Date.now(),
-    pj, keterangan, total,
+    pj, keterangan, nominal,
     jabatanPj: document.getElementById('audit-jabatanPj').value.trim(),
     qty: Number(document.getElementById('audit-qty').value) || 0,
     satuan: document.getElementById('audit-satuan').value.trim() || '-',
-    kategori: document.getElementById('audit-kategori').value.trim() || 'Lainnya'
+    kategori: document.getElementById('audit-kategori').value.trim() || 'Lain-lain'
   };
-  const res = await Api.updatePengeluaran(key, data);
+  const res = await Api.updateKasRecord(ctx.buku, ctx.jenis, key, data);
   if (res.status === 'success') {
     cancelAuditEdit();
     await loadAuditList();
@@ -575,9 +724,10 @@ async function saveAuditEdit() {
   } else { showToast('Gagal: ' + res.message, true); }
 }
 
-async function confirmDeletePengeluaran(key) {
+async function confirmDeleteKas(key) {
   if (!confirm('Yakin hapus data ini? Tidak bisa dibatalkan.')) return;
-  const res = await Api.deletePengeluaran(key);
+  const ctx = auditContext();
+  const res = await Api.deleteKasRecord(ctx.buku, ctx.jenis, key);
   if (res.status === 'success') {
     auditRecords = auditRecords.filter(r => r.key !== key);
     renderAuditList();
@@ -585,14 +735,14 @@ async function confirmDeletePengeluaran(key) {
   } else { showToast('Gagal: ' + res.message, true); }
 }
 
-// ===== PIN PER ANGGOTA =====
+// ===== PIN PER PENGURUS =====
 let memberPinsData = {};
 
 async function renderMemberPinList() {
   const el = document.getElementById('member-pin-list');
-  const namaList = toArr(masterData.namaPanitia);
+  const namaList = toArr(masterData.namaPengurus);
   if (!namaList.length) {
-    el.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Belum ada nama anggota di Master Nama</p>';
+    el.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Belum ada nama pengurus di Master Nama</p>';
     return;
   }
   el.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Memuat...</p>';
@@ -604,18 +754,18 @@ async function renderMemberPinList() {
     return `
     <div class="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
       <div class="flex items-center gap-2">
-        <span class="flex-1 text-sm font-medium text-gray-700 truncate">${nama}</span>
+        <span class="flex-1 text-sm font-medium text-gray-700 truncate">${esc(nama)}</span>
         <span class="text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${hasPin ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}">${hasPin ? 'PIN sendiri' : 'PIN bersama'}</span>
-        <button onclick="togglePinSetForm(${i})" class="btn-delete bg-blue-50 hover:bg-blue-100 rounded-lg flex-shrink-0">
-          <i data-lucide="key" class="w-3.5 h-3.5 text-blue-500"></i>
+        <button onclick="togglePinSetForm(${i})" class="btn-delete bg-emerald-50 hover:bg-emerald-100 rounded-lg flex-shrink-0">
+          <i data-lucide="key" class="w-3.5 h-3.5 text-emerald-700"></i>
         </button>
       </div>
       <div id="pin-set-form-${i}" class="hidden mt-2 space-y-2">
         <input type="password" id="pin-set-input-${i}" placeholder="PIN baru (min 4 digit)" inputmode="numeric" maxlength="8"
           class="w-full bg-white px-3 py-2 rounded-xl border border-gray-200 text-sm text-center tracking-widest outline-none input-focus">
         <div class="flex gap-2">
-          <button onclick="saveMemberPinAdmin(${i}, '${nama}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 rounded-lg text-xs btn-bounce">Simpan PIN</button>
-          ${hasPin ? `<button onclick="resetMemberPin(${i}, '${nama}')" class="bg-orange-100 hover:bg-orange-200 text-orange-600 font-bold py-1.5 px-3 rounded-lg text-xs btn-bounce">Reset</button>` : ''}
+          <button onclick="saveMemberPinAdmin(${i}, '${esc(nama)}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 rounded-lg text-xs btn-bounce">Simpan PIN</button>
+          ${hasPin ? `<button onclick="resetMemberPin(${i}, '${esc(nama)}')" class="bg-orange-100 hover:bg-orange-200 text-orange-600 font-bold py-1.5 px-3 rounded-lg text-xs btn-bounce">Reset</button>` : ''}
           <button onclick="togglePinSetForm(${i})" class="bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-1.5 px-3 rounded-lg text-xs">Batal</button>
         </div>
       </div>

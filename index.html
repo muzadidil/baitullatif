@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TPQ AL-MAIDAH KARANGSONO</title>
+  <title>MASJID JAMIK BAITULLATIF</title>
 
   <!-- CDN dependencies -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -18,12 +18,12 @@
 
     <header class="flex items-center justify-between mb-5 px-2 fade-up">
       <div class="flex items-center gap-3">
-        <div class="w-11 h-11 bca-gradient rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 text-white">
-          <i data-lucide="book-open" class="w-6 h-6"></i>
+        <div class="w-11 h-11 brand-gradient rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 text-white">
+          <i data-lucide="moon-star" class="w-6 h-6"></i>
         </div>
         <div>
-          <h1 id="header-lembaga" class="font-extrabold text-gray-800 text-sm leading-tight tracking-wide">TPQ AL-MAIDAH</h1>
-          <p id="header-kegiatan" class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Sistem Administrasi</p>
+          <h1 id="header-lembaga" class="font-extrabold text-gray-800 text-sm leading-tight tracking-wide">MASJID JAMIK BAITULLATIF</h1>
+          <p id="header-tagline" class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Sistem Elektronik Masjid</p>
         </div>
       </div>
       <a href="admin.html" class="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">
@@ -31,51 +31,58 @@
       </a>
     </header>
 
-    <div class="bca-gradient pt-10 pb-20 px-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden fade-up">
+    <div class="brand-gradient pt-10 pb-20 px-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden fade-up">
       <div class="absolute -right-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full"></div>
       <div class="absolute -left-5 bottom-0 w-24 h-24 bg-white opacity-5 rounded-full"></div>
       <div class="relative z-10 text-center">
-        <h2 class="text-xl font-extrabold text-white tracking-[0.2em] uppercase mb-1">WISUDA SANTRI</h2>
+        <h2 class="text-xl font-extrabold text-white tracking-[0.15em] uppercase mb-1">SISTEM ELEKTRONIK MASJID</h2>
         <div class="flex items-center justify-center gap-2">
-          <span class="h-px w-8 bg-blue-300 opacity-50"></span>
-          <p class="text-[10px] text-blue-100 font-semibold tracking-widest uppercase opacity-90">Mencetak Generasi Berakhlak Mulia</p>
-          <span class="h-px w-8 bg-blue-300 opacity-50"></span>
+          <span class="h-px w-8 bg-emerald-200 opacity-50"></span>
+          <p id="hero-alamat" class="text-[10px] text-emerald-50 font-semibold tracking-widest uppercase opacity-90">Krajan &bull; Karangsono &bull; Bangsalsari &bull; Jember</p>
+          <span class="h-px w-8 bg-emerald-200 opacity-50"></span>
         </div>
       </div>
     </div>
 
     <main class="flex-grow -mt-12 relative z-20">
 
-      <div id="tab-input" class="tab-content block fade-up">
+      <!-- ===== TAB: PENGELUARAN ===== -->
+      <div id="tab-keluar" class="tab-content block fade-up">
         <div class="glass-card rounded-3xl p-6 sm:p-8">
           <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
             <div class="p-2 bg-red-50 rounded-lg"><i data-lucide="wallet" class="w-5 h-5 text-red-600"></i></div>
             <div>
               <h2 class="text-gray-800 font-bold text-sm sm:text-base">FORM PENGELUARAN</h2>
-              <p class="text-[10px] text-gray-400">Pencatatan Dana Keluar</p>
+              <p class="text-[10px] text-gray-400">Pencatatan Dana Keluar (Kredit)</p>
             </div>
           </div>
-          <form id="bcaForm" onsubmit="handleSubmit(event)" class="space-y-4">
+          <form id="formKeluar" onsubmit="handlePengeluaran(event)" class="space-y-4">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Buku Kas</label>
+              <select id="bukuKeluar" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
+                <option value="masjid" selected>Kas Masjid</option>
+              </select>
+            </div>
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Penanggung Jawab</label>
-              <input type="text" id="pjPengeluaran" placeholder="Login sebagai anggota dulu" class="w-full bg-gray-100 px-4 py-3.5 rounded-2xl border border-gray-100 outline-none text-gray-700 font-medium uppercase text-sm" readonly required>
+              <input type="text" id="pjPengeluaran" placeholder="Login sebagai pengurus dulu" class="w-full bg-gray-100 px-4 py-3.5 rounded-2xl border border-gray-100 outline-none text-gray-700 font-medium uppercase text-sm" readonly required>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Keterangan Pengeluaran</label>
-              <input type="text" id="nama" placeholder="Contoh: Beli Snack" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 uppercase text-sm" required>
+              <input type="text" id="ketPengeluaran" placeholder="Contoh: Bayar Listrik" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 uppercase text-sm" required>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Total Harga (Rp)</label>
-              <input type="number" id="noRek" placeholder="Contoh: 100000" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 text-sm" required>
+              <input type="number" id="totalPengeluaran" placeholder="Contoh: 100000" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 text-sm" required>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Jumlah & Satuan</label>
               <div class="flex gap-3">
                 <div class="relative w-1/3">
-                  <input type="number" id="qty" placeholder="Qty" min="1" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 text-sm" required>
+                  <input type="number" id="qtyPengeluaran" placeholder="Qty" min="1" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 text-sm" required>
                 </div>
                 <div class="relative w-2/3">
-                  <select id="harga" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
+                  <select id="satuanPengeluaran" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
                     <option value="" disabled selected>Memuat Data...</option>
                   </select>
                 </div>
@@ -83,43 +90,56 @@
             </div>
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Kategori Pengeluaran</label>
-              <select id="jenis" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium text-sm appearance-none" required>
+              <select id="kategoriPengeluaran" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium text-sm appearance-none" required>
                 <option value="" disabled selected>Memuat Data...</option>
               </select>
             </div>
-            <button type="submit" id="btnSubmit" class="w-full mt-4 mx-auto bca-gradient text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-blue-200 flex items-center justify-center gap-3 transition-all btn-bounce hover:brightness-110">
-              <span id="btnText" class="flex items-center gap-2">Simpan Pengeluaran <i data-lucide="save" class="w-4 h-4"></i></span>
-              <div id="loading" class="hidden flex items-center gap-2"><span class="loader-pro"></span><span class="text-sm">Menyimpan...</span></div>
+            <button type="submit" id="btnKeluar" class="w-full mt-4 mx-auto brand-gradient text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 transition-all btn-bounce hover:brightness-110">
+              <span id="btnTextKeluar" class="flex items-center gap-2">Simpan Pengeluaran <i data-lucide="save" class="w-4 h-4"></i></span>
+              <div id="loadingKeluar" class="hidden flex items-center gap-2"><span class="loader-pro"></span><span class="text-sm">Menyimpan...</span></div>
             </button>
           </form>
         </div>
       </div>
 
-      <div id="tab-pemasukan" class="tab-content hidden fade-up">
+      <!-- ===== TAB: PEMASUKAN ===== -->
+      <div id="tab-masuk" class="tab-content hidden fade-up">
         <div class="glass-card rounded-3xl p-6 sm:p-8">
           <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
             <div class="p-2 bg-green-50 rounded-lg"><i data-lucide="arrow-down-circle" class="w-5 h-5 text-green-600"></i></div>
             <div>
               <h2 class="text-gray-800 font-bold text-sm sm:text-base">FORM PEMASUKAN</h2>
-              <p class="text-[10px] text-gray-400">Pencatatan Dana Masuk</p>
+              <p class="text-[10px] text-gray-400">Pencatatan Dana Masuk (Debit)</p>
             </div>
           </div>
-          <form id="pemasukanForm" onsubmit="handlePemasukan(event)" class="space-y-4">
+          <form id="formMasuk" onsubmit="handlePemasukan(event)" class="space-y-4">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Buku Kas</label>
+              <select id="bukuMasuk" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
+                <option value="masjid" selected>Kas Masjid</option>
+              </select>
+            </div>
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Penanggung Jawab</label>
-              <input type="text" id="pjPemasukan" placeholder="Login sebagai anggota dulu" class="w-full bg-gray-100 px-4 py-3.5 rounded-2xl border border-gray-100 outline-none text-gray-700 font-medium uppercase text-sm" readonly required>
+              <input type="text" id="pjPemasukan" placeholder="Login sebagai pengurus dulu" class="w-full bg-gray-100 px-4 py-3.5 rounded-2xl border border-gray-100 outline-none text-gray-700 font-medium uppercase text-sm" readonly required>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Nominal (Rp)</label>
               <input type="number" id="nominalPemasukan" placeholder="Contoh: 500000" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 text-sm" required>
             </div>
             <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Sumber / Kategori</label>
+              <select id="kategoriPemasukan" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium text-sm appearance-none" required>
+                <option value="" disabled selected>Memuat Data...</option>
+              </select>
+            </div>
+            <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Keterangan (Opsional)</label>
               <input type="text" id="ketPemasukan" placeholder="Catatan tambahan..." class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium placeholder:text-gray-300 text-sm">
             </div>
-            <button type="submit" id="btnSubmitPemasukan" class="w-full mt-4 mx-auto bg-green-600 text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-green-200 flex items-center justify-center gap-3 transition-all btn-bounce hover:bg-green-700">
-              <span id="btnTextPemasukan" class="flex items-center gap-2">Simpan Pemasukan <i data-lucide="save" class="w-4 h-4"></i></span>
-              <div id="loadingPemasukan" class="hidden flex items-center gap-2">
+            <button type="submit" id="btnMasuk" class="w-full mt-4 mx-auto bg-green-600 text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-green-200 flex items-center justify-center gap-3 transition-all btn-bounce hover:bg-green-700">
+              <span id="btnTextMasuk" class="flex items-center gap-2">Simpan Pemasukan <i data-lucide="save" class="w-4 h-4"></i></span>
+              <div id="loadingMasuk" class="hidden flex items-center gap-2">
                 <span class="loader-pro" style="border-color: #fff; border-bottom-color: transparent;"></span><span class="text-sm">Menyimpan...</span>
               </div>
             </button>
@@ -127,32 +147,212 @@
         </div>
       </div>
 
-      <div id="tab-panitia" class="tab-content hidden fade-up">
+      <!-- ===== TAB: LAPORAN ===== -->
+      <div id="tab-laporan" class="tab-content hidden fade-up">
+        <div class="glass-card rounded-3xl p-6 sm:p-8">
+          <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-emerald-50 rounded-lg"><i data-lucide="bar-chart-3" class="w-5 h-5 text-emerald-700"></i></div>
+              <div>
+                <h2 class="text-gray-800 font-bold text-sm sm:text-base">LAPORAN KEUANGAN</h2>
+                <p class="text-[10px] text-gray-400">Debit / Kredit per Buku Kas</p>
+              </div>
+            </div>
+            <button onclick="fetchLaporan()" class="w-auto px-3 py-2 m-0 bg-gray-50 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-all border border-gray-100">
+              <i data-lucide="refresh-cw" class="w-4 h-4 text-gray-600"></i>
+            </button>
+          </div>
+
+          <div class="flex flex-col gap-2 mb-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+            <select id="bukuLaporan" onchange="fetchLaporan()" class="mini-input w-full bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-emerald-700 appearance-none">
+              <option value="masjid" selected>Kas Masjid</option>
+            </select>
+            <div class="flex gap-2 items-center">
+              <input type="date" id="lapDari" onchange="fetchLaporan()" class="mini-input w-1/2 bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-emerald-700">
+              <span class="text-[10px] text-gray-400 font-bold">s/d</span>
+              <input type="date" id="lapSampai" onchange="fetchLaporan()" class="mini-input w-1/2 bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-emerald-700">
+            </div>
+            <div class="flex gap-1.5 flex-wrap">
+              <button onclick="setPeriode('semua')" class="chip-btn bg-gray-100 hover:bg-gray-200 text-gray-600">Semua</button>
+              <button onclick="setPeriode('bulan')" class="chip-btn bg-emerald-50 hover:bg-emerald-100 text-emerald-700">Bulan Ini</button>
+              <button onclick="setPeriode('bulanLalu')" class="chip-btn bg-emerald-50 hover:bg-emerald-100 text-emerald-700">Bulan Lalu</button>
+              <button onclick="setPeriode('tahun')" class="chip-btn bg-emerald-50 hover:bg-emerald-100 text-emerald-700">Tahun Ini</button>
+            </div>
+          </div>
+
+          <!-- Summary D/K -->
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="p-3 bg-green-50 rounded-2xl border border-green-100 text-center">
+              <p class="text-[9px] font-bold text-green-600 uppercase tracking-wider">Debit (Masuk)</p>
+              <p id="lapTotalD" class="text-xs font-extrabold text-green-700 mt-1">Rp 0</p>
+            </div>
+            <div class="p-3 bg-red-50 rounded-2xl border border-red-100 text-center">
+              <p class="text-[9px] font-bold text-red-500 uppercase tracking-wider">Kredit (Keluar)</p>
+              <p id="lapTotalK" class="text-xs font-extrabold text-red-600 mt-1">Rp 0</p>
+            </div>
+            <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
+              <p class="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Saldo</p>
+              <p id="lapSaldo" class="text-xs font-extrabold text-emerald-700 mt-1">Rp 0</p>
+            </div>
+          </div>
+
+          <input type="text" id="searchLaporan" oninput="delaySearchLaporan()" placeholder="🔍 Cari keterangan atau PJ..." class="mini-input w-full bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-emerald-700 transition-all mb-3">
+
+          <div id="laporan-loading" class="hidden flex-col items-center justify-center py-8">
+            <span class="loader-pro loader-brand mb-3"></span>
+            <p class="text-xs text-gray-500 font-medium">Memuat data dari database...</p>
+          </div>
+          <div id="laporan-list" class="space-y-2 overflow-y-auto max-h-[350px] pr-2 mb-4"></div>
+
+          <div class="border-t border-gray-100 pt-4 space-y-2">
+            <button onclick="printLaporan()" id="btnPrint" class="w-full brand-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition-all btn-bounce hover:brightness-110">
+              <span id="btnTextPrint" class="flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> CETAK PDF LAPORAN</span>
+              <div id="loadingPrint" class="hidden flex items-center gap-2">
+                <span class="loader-pro" style="border-color: #fff; border-bottom-color: transparent;"></span><span class="text-sm">Menyiapkan...</span>
+              </div>
+            </button>
+            <button onclick="exportLaporanExcel()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all btn-bounce">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export Excel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== TAB: SURAT ===== -->
+      <div id="tab-surat" class="tab-content hidden fade-up">
+        <div class="glass-card rounded-3xl p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+            <div class="p-2 bg-sky-50 rounded-lg"><i data-lucide="mail" class="w-5 h-5 text-sky-600"></i></div>
+            <div>
+              <h2 class="text-gray-800 font-bold text-sm sm:text-base">SURAT MENYURAT</h2>
+              <p class="text-[10px] text-gray-400">Cetak surat resmi siap print (PDF)</p>
+            </div>
+          </div>
+
+          <form id="formSurat" onsubmit="handleSurat(event)" class="space-y-4">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Jenis Surat</label>
+              <select id="jenisSurat" onchange="onJenisSuratChange()" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
+                <option value="undangan" selected>Surat Undangan</option>
+                <option value="pemberitahuan">Surat Pemberitahuan / Edaran</option>
+                <option value="permohonan">Surat Permohonan Bantuan</option>
+                <option value="keterangan">Surat Keterangan</option>
+                <option value="tugas">Surat Tugas</option>
+              </select>
+              <p class="text-[10px] text-gray-400 ml-1 mt-1">Nomor surat dibuat otomatis: <span id="previewNomor" class="font-bold text-emerald-700">.../..../..../....</span></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Tanggal Surat</label>
+                <input type="date" id="tglSurat" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm" required>
+              </div>
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Lampiran</label>
+                <input type="text" id="lampiranSurat" placeholder="-" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm placeholder:text-gray-300">
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Perihal</label>
+              <input type="text" id="perihalSurat" placeholder="Perihal surat..." class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm placeholder:text-gray-300" required>
+            </div>
+
+            <div class="space-y-1" id="grup-tujuan">
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Kepada (Tujuan)</label>
+              <input type="text" id="tujuanSurat" placeholder="Contoh: Bapak/Ibu Jamaah Masjid Jamik Baitullatif" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-gray-700 font-medium text-sm placeholder:text-gray-300">
+            </div>
+
+            <!-- Detail: Undangan -->
+            <div id="detail-undangan" class="space-y-3 p-4 bg-sky-50/50 rounded-2xl border border-sky-100">
+              <p class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Detail Acara</p>
+              <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="undHari" placeholder="Hari / Tanggal acara" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+                <input type="text" id="undWaktu" placeholder="Waktu (misal: 19.30 WIB)" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+              </div>
+              <input type="text" id="undTempat" placeholder="Tempat" value="Masjid Jamik Baitullatif" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+              <input type="text" id="undAcara" placeholder="Acara (misal: Rapat Persiapan Maulid Nabi)" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+            </div>
+
+            <!-- Detail: Keterangan -->
+            <div id="detail-keterangan" class="hidden space-y-3 p-4 bg-sky-50/50 rounded-2xl border border-sky-100">
+              <p class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Data yang Diterangkan</p>
+              <input type="text" id="ketrNama" placeholder="Nama lengkap" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+              <input type="text" id="ketrAlamat" placeholder="Alamat" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+              <textarea id="ketrIsi" rows="3" placeholder="Isi keterangan (misal: benar-benar aktif sebagai jamaah/pengurus Masjid Jamik Baitullatif...)" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300"></textarea>
+            </div>
+
+            <!-- Detail: Permohonan -->
+            <div id="detail-permohonan" class="hidden space-y-3 p-4 bg-sky-50/50 rounded-2xl border border-sky-100">
+              <p class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Isi Permohonan</p>
+              <textarea id="mohonIsi" rows="4" placeholder="Uraian permohonan bantuan (keperluan, rincian kebutuhan, dsb.)" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300"></textarea>
+            </div>
+
+            <!-- Detail: Tugas -->
+            <div id="detail-tugas" class="hidden space-y-3 p-4 bg-sky-50/50 rounded-2xl border border-sky-100">
+              <p class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Detail Penugasan</p>
+              <textarea id="tugasNama" rows="3" placeholder="Nama yang ditugaskan (satu nama per baris)" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300"></textarea>
+              <input type="text" id="tugasIsi" placeholder="Untuk / tugas apa" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+              <input type="text" id="tugasWaktu" placeholder="Waktu & tempat pelaksanaan" class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300">
+            </div>
+
+            <!-- Detail: Pemberitahuan -->
+            <div id="detail-pemberitahuan" class="hidden space-y-3 p-4 bg-sky-50/50 rounded-2xl border border-sky-100">
+              <p class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Isi Pemberitahuan</p>
+              <textarea id="beritahuIsi" rows="4" placeholder="Isi pemberitahuan/edaran..." class="w-full bg-white px-4 py-3 rounded-xl border border-gray-100 input-focus outline-none text-gray-700 text-sm placeholder:text-gray-300"></textarea>
+            </div>
+
+            <button type="submit" id="btnSurat" class="w-full mt-4 mx-auto bg-sky-600 text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-sky-200 flex items-center justify-center gap-3 transition-all btn-bounce hover:bg-sky-700">
+              <span id="btnTextSurat" class="flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Simpan & Cetak Surat</span>
+              <div id="loadingSurat" class="hidden flex items-center gap-2">
+                <span class="loader-pro" style="border-color: #fff; border-bottom-color: transparent;"></span><span class="text-sm">Menyiapkan...</span>
+              </div>
+            </button>
+          </form>
+
+          <!-- Arsip Surat -->
+          <div class="mt-8 border-t border-gray-100 pt-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-bold text-gray-800">ARSIP SURAT</h3>
+              <button onclick="fetchArsipSurat()" class="w-auto px-3 py-2 m-0 bg-sky-50 hover:bg-sky-100 rounded-lg flex items-center justify-center transition-all border border-sky-100">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-sky-600"></i>
+              </button>
+            </div>
+            <div id="arsip-loading" class="hidden flex-col items-center justify-center py-6">
+              <span class="loader-pro loader-brand mb-3"></span>
+            </div>
+            <div id="arsip-list" class="space-y-2 overflow-y-auto max-h-[300px] pr-1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== TAB: PENGURUS ===== -->
+      <div id="tab-pengurus" class="tab-content hidden fade-up">
         <div class="glass-card rounded-3xl p-6 sm:p-8">
 
           <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
             <div class="p-2 bg-purple-50 rounded-lg"><i data-lucide="users" class="w-5 h-5 text-purple-600"></i></div>
             <div>
-              <h2 class="text-gray-800 font-bold text-sm sm:text-base">SUSUNAN PANITIA</h2>
-              <p class="text-[10px] text-gray-400">Pembagian Tugas Acara</p>
+              <h2 class="text-gray-800 font-bold text-sm sm:text-base">SUSUNAN PENGURUS</h2>
+              <p class="text-[10px] text-gray-400">Takmir & Pengurus Masjid</p>
             </div>
           </div>
-          <form id="panitiaForm" onsubmit="handlePanitia(event)" class="space-y-4">
+          <form id="formPengurus" onsubmit="handlePengurus(event)" class="space-y-4">
             <div class="space-y-1">
               <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Jabatan / Peran</label>
-              <select id="jabatanPanitia" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
+              <select id="jabatanPengurus" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
                 <option value="" disabled selected>Memuat Data...</option>
               </select>
             </div>
             <div class="space-y-1">
-              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Nama Anggota</label>
-              <select id="namaAnggota" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
+              <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wider">Nama Pengurus</label>
+              <select id="namaPengurusSel" class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none transition-all text-gray-700 font-medium appearance-none text-sm" required>
                 <option value="" disabled selected>Memuat Data...</option>
               </select>
             </div>
-            <button type="submit" id="btnSubmitPanitia" class="w-full mt-4 mx-auto bg-purple-600 text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-3 transition-all btn-bounce hover:bg-purple-700">
-              <span id="btnTextPanitia" class="flex items-center gap-2">Simpan Panitia <i data-lucide="save" class="w-4 h-4"></i></span>
-              <div id="loadingPanitia" class="hidden flex items-center gap-2">
+            <button type="submit" id="btnPengurus" class="w-full mt-4 mx-auto bg-purple-600 text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-3 transition-all btn-bounce hover:bg-purple-700">
+              <span id="btnTextPengurus" class="flex items-center gap-2">Simpan Pengurus <i data-lucide="save" class="w-4 h-4"></i></span>
+              <div id="loadingPengurus" class="hidden flex items-center gap-2">
                 <span class="loader-pro" style="border-color: #fff; border-bottom-color: transparent;"></span><span class="text-sm">Menyimpan...</span>
               </div>
             </button>
@@ -160,83 +360,34 @@
 
           <div class="mt-8 border-t border-gray-100 pt-6">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-sm font-bold text-gray-800">DAFTAR PANITIA</h3>
-              <button onclick="fetchPanitia()" class="w-auto px-3 py-2 m-0 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center justify-center transition-all border border-purple-100">
+              <h3 class="text-sm font-bold text-gray-800">DAFTAR PENGURUS</h3>
+              <button onclick="fetchPengurus()" class="w-auto px-3 py-2 m-0 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center justify-center transition-all border border-purple-100">
                 <i data-lucide="refresh-cw" class="w-4 h-4 text-purple-600"></i>
               </button>
             </div>
 
             <div class="flex flex-col gap-2 mb-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-              <input type="text" id="searchPanitia" oninput="delaySearchPanitia()" placeholder="🔍 Cari Nama..." class="mini-input w-full bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-purple-600 transition-all">
-              <select id="filterJabatanList" onchange="fetchPanitia()" class="mini-input w-full bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-purple-600 appearance-none">
+              <input type="text" id="searchPengurus" oninput="delaySearchPengurus()" placeholder="🔍 Cari Nama..." class="mini-input w-full bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-purple-600 transition-all">
+              <select id="filterJabatanList" onchange="fetchPengurus()" class="mini-input w-full bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-purple-600 appearance-none">
                 <option value="">Semua Jabatan</option>
               </select>
             </div>
 
-            <div id="panitia-loading" class="hidden flex-col items-center justify-center py-6">
+            <div id="pengurus-loading" class="hidden flex-col items-center justify-center py-6">
               <span class="loader-pro loader-purple mb-3"></span>
             </div>
 
-            <div id="panitia-list" class="space-y-2 overflow-y-auto max-h-[300px] pr-1">
+            <div id="pengurus-list" class="space-y-2 overflow-y-auto max-h-[300px] pr-1">
             </div>
           </div>
 
-        </div>
-      </div>
-
-      <div id="tab-riwayat" class="tab-content hidden fade-up">
-        <div class="glass-card rounded-3xl p-6 sm:p-8">
-          <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
-            <div class="flex items-center gap-3">
-              <div class="p-2 bg-blue-50 rounded-lg"><i data-lucide="history" class="w-5 h-5 text-[#003399]"></i></div>
-              <div>
-                <h2 class="text-gray-800 font-bold text-sm sm:text-base">RIWAYAT TRANSAKSI</h2>
-                <p class="text-[10px] text-gray-400">Database Pengeluaran</p>
-              </div>
-            </div>
-            <button onclick="fetchRiwayat()" class="w-auto px-3 py-2 m-0 bg-gray-50 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-all border border-gray-100">
-              <i data-lucide="refresh-cw" class="w-4 h-4 text-gray-600"></i>
-            </button>
-          </div>
-
-          <div class="flex flex-col gap-2 mb-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-            <input type="text" id="searchRiwayat" oninput="delaySearch()" placeholder="🔍 Cari Keterangan atau PJ..." class="mini-input w-full bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-[#003399] transition-all">
-            <div class="flex gap-2">
-              <select id="filterKatRiwayat" onchange="fetchRiwayat()" class="mini-input w-2/3 bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-[#003399] appearance-none">
-                <option value="">Semua Kategori</option>
-              </select>
-              <select id="limitRiwayat" onchange="fetchRiwayat()" class="mini-input w-1/3 bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none focus:border-[#003399] appearance-none">
-                <option value="10">10 Data</option>
-                <option value="20" selected>20 Data</option>
-                <option value="50">50 Data</option>
-                <option value="100">100 Data</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="riwayat-loading" class="hidden flex-col items-center justify-center py-8">
-            <span class="loader-pro loader-blue mb-3"></span>
-            <p class="text-xs text-gray-500 font-medium">Memuat data dari database...</p>
-          </div>
-          <div id="riwayat-list" class="space-y-3 overflow-y-auto max-h-[350px] pr-2 mb-4"></div>
-          <div class="border-t border-gray-100 pt-4 space-y-2">
-            <button onclick="printLPJ()" id="btnPrint" class="w-full bca-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all btn-bounce hover:brightness-110">
-              <span id="btnTextPrint" class="flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> CETAK PDF (LPJ)</span>
-              <div id="loadingPrint" class="hidden flex items-center gap-2">
-                <span class="loader-pro" style="border-color: #fff; border-bottom-color: transparent;"></span><span class="text-sm">Menyiapkan...</span>
-              </div>
-            </button>
-            <button onclick="exportExcel()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all btn-bounce">
-              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export Excel
-            </button>
-          </div>
         </div>
       </div>
 
     </main>
 
     <footer class="p-8 text-center space-y-3 mt-4">
-      <p id="footer-lembaga" class="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">©2026 TPQ AL-MAIDAH KARANGSONO</p>
+      <p id="footer-lembaga" class="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">©2026 MASJID JAMIK BAITULLATIF</p>
     </footer>
 
     <div id="successModal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 hidden">
@@ -253,14 +404,30 @@
 
   </div>
 
+  <!-- Setup notice (shown when firebaseConfig is still a placeholder) -->
+  <div id="setup-gate" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl modal-enter text-center">
+      <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="settings" class="w-7 h-7 text-amber-600"></i>
+      </div>
+      <h2 class="font-bold text-gray-800 text-base mb-2">Setup Firebase Diperlukan</h2>
+      <p class="text-xs text-gray-500 leading-relaxed">
+        Aplikasi belum terhubung ke database. Buat project di
+        <strong>console.firebase.google.com</strong>, lalu isi <code class="bg-gray-100 px-1 rounded">firebaseConfig</code>
+        di file <code class="bg-gray-100 px-1 rounded">firebase.js</code>.<br><br>
+        Panduan lengkap ada di <strong>README.md</strong>.
+      </p>
+    </div>
+  </div>
+
   <!-- Member Login Modal -->
   <div id="member-gate" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
     <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl modal-enter">
       <div class="text-center mb-6">
-        <div class="w-14 h-14 bca-gradient rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-200">
+        <div class="w-14 h-14 brand-gradient rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-200">
           <i data-lucide="user-check" class="w-7 h-7 text-white"></i>
         </div>
-        <h2 class="font-bold text-gray-800 text-base">Masuk sebagai Anggota</h2>
+        <h2 class="font-bold text-gray-800 text-base">Masuk sebagai Pengurus</h2>
         <p class="text-[10px] text-gray-400 mt-1">PIN default: <strong>1234</strong></p>
       </div>
       <div class="space-y-3">
@@ -270,7 +437,7 @@
         <input type="password" id="memberPin" placeholder="••••" inputmode="numeric" maxlength="8"
           class="w-full bg-gray-50 px-4 py-3.5 rounded-2xl border border-gray-100 input-focus outline-none text-center text-2xl font-bold tracking-[0.5em] text-gray-700">
         <p id="member-error" class="text-red-500 text-xs text-center hidden"></p>
-        <button onclick="memberLogin()" class="w-full bca-gradient text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 btn-bounce hover:brightness-110 transition-all">
+        <button onclick="memberLogin()" class="w-full brand-gradient text-white font-bold py-4 rounded-2xl shadow-xl shadow-emerald-200 btn-bounce hover:brightness-110 transition-all">
           Masuk
         </button>
       </div>
@@ -280,21 +447,25 @@
   <!-- Bottom Navigation -->
   <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-2xl z-50">
     <div class="flex" style="max-width: 600px; margin: 0 auto;">
-      <button id="btn-input" onclick="switchTab('input')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[#003399] transition-all">
+      <button id="btn-keluar" onclick="switchTab('keluar')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-emerald-700 transition-all">
         <i data-lucide="trending-down" class="w-5 h-5"></i>
-        <span class="text-[10px] font-bold">Dana</span>
+        <span class="text-[10px] font-bold">Keluar</span>
       </button>
-      <button id="btn-pemasukan" onclick="switchTab('pemasukan')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
+      <button id="btn-masuk" onclick="switchTab('masuk')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
         <i data-lucide="trending-up" class="w-5 h-5"></i>
         <span class="text-[10px] font-bold">Masuk</span>
       </button>
-      <button id="btn-panitia" onclick="switchTab('panitia')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
-        <i data-lucide="users" class="w-5 h-5"></i>
-        <span class="text-[10px] font-bold">Panitia</span>
+      <button id="btn-laporan" onclick="switchTab('laporan')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        <span class="text-[10px] font-bold">Laporan</span>
       </button>
-      <button id="btn-riwayat" onclick="switchTab('riwayat')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
-        <i data-lucide="history" class="w-5 h-5"></i>
-        <span class="text-[10px] font-bold">Riwayat</span>
+      <button id="btn-surat" onclick="switchTab('surat')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
+        <i data-lucide="mail" class="w-5 h-5"></i>
+        <span class="text-[10px] font-bold">Surat</span>
+      </button>
+      <button id="btn-pengurus" onclick="switchTab('pengurus')" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span class="text-[10px] font-bold">Pengurus</span>
       </button>
       <button onclick="memberLogout()" class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-gray-400 transition-all">
         <i data-lucide="log-out" class="w-5 h-5"></i>

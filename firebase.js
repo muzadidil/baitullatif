@@ -1,43 +1,64 @@
 /* ==========================================
-   TPQ AL-MAIDAH - Firebase Data Layer (Realtime Database)
-   Replaces the old Google Apps Script bridge.
+   MASJID JAMIK BAITULLATIF - Firebase Data Layer (Realtime Database)
+   Sistem Elektronik Masjid
 
    RTDB tree structure (seed via Console -> Import JSON):
-     /master/satuan       : ["Pcs", "Box", ...]
-     /master/kategori     : ["Konsumsi", "Dekorasi", ...]
-     /master/namaPanitia  : ["Nama 1", "Nama 2", ...]
-     /master/jabatan      : ["Ketua", "Sekretaris", ...]
-     /struktur            : { pj, ketua, bendahara, sekretaris }
-     /pengeluaran/{pushId}: { waktu, pj, keterangan, total, qty, satuan, kategori, status }
-     /pemasukan/{pushId}  : { waktu, pj, nominal, keterangan }
-     /panitia/{pushId}    : { waktu, jabatan, nama }
+     /master/satuan            : ["Pcs", "Box", ...]
+     /master/kategoriKeluar    : ["Listrik & Air", ...]
+     /master/kategoriMasuk     : ["Infaq Jumat", ...]
+     /master/namaPengurus      : ["Nama 1", ...]
+     /master/jabatan           : ["Ketua", "Sekretaris", ...]
+     /struktur                 : { ketua, sekretaris, bendahara, penasehat }
+     /pengurus/{pushId}        : { waktu, jabatan, nama }
+     /kegiatan/{pushId}        : { nama, status: 'aktif'|'selesai', dibuat }
+     /kas/{bukuId}/pengeluaran/{pushId}
+                               : { waktu, pj, jabatanPj, keterangan, total, qty, satuan, kategori, status }
+     /kas/{bukuId}/pemasukan/{pushId}
+                               : { waktu, pj, jabatanPj, keterangan, nominal, kategori }
+     /surat/{pushId}           : { nomor, jenis, tanggal, perihal, tujuan, lampiran, detail, pembuat, dibuat }
+     /suratCounter/{tahun}     : number (auto-increment per year)
+     /admin/config             : { pinHash, memberPinHash, menu, orgInfo, logoBase64 }
+     /admin/memberPins/{key}   : sha256 hash
 
-   Every method returns the same shape as before:
+   bukuId is either the literal 'masjid' (kas operasional masjid)
+   or a /kegiatan pushId (kas per kegiatan).
+
+   Every method returns:
      { status: 'success', data: ... } | { status: 'error', message: '...' }
-   so the UI code in app.js does not need to change its checks.
    ========================================== */
 
+// PASTE the config of your OWN Firebase project here (see README.md).
 const firebaseConfig = {
-  apiKey: "AIzaSyDZapoLIviX-2tgi-DfaEYEASN4L8hbluY",
-  authDomain: "al-maidah-karangsono.firebaseapp.com",
-  databaseURL: "https://al-maidah-karangsono-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "al-maidah-karangsono",
-  storageBucket: "al-maidah-karangsono.firebasestorage.app",
-  messagingSenderId: "564960347514",
-  appId: "1:564960347514:web:275be4c13c03a6f058c2c3"
+  apiKey: "AIzaSyBDNs3AgbikSai9JKPXNO7kCWv-voHiCLk",
+  authDomain: "baitullatif-karangsono.firebaseapp.com",
+  databaseURL: "https://baitullatif-karangsono-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "baitullatif-karangsono",
+  storageBucket: "baitullatif-karangsono.firebasestorage.app",
+  messagingSenderId: "340304823291",
+  appId: "1:340304823291:web:624557c61a1f8751a3015e"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const BUKU_MASJID = 'masjid';
 
-// Sign in anonymously so Security Rules can require `auth != null`.
-// Resolves to true/false; all Api methods await this before touching the DB.
-const authReady = firebase.auth()
-  .signInAnonymously()
-  .then(() => true)
-  .catch((err) => { logError('auth.signInAnonymously', err); return false; });
+// True once firebaseConfig no longer contains placeholder values.
+const FIREBASE_CONFIGURED = !/^PASTE_/.test(firebaseConfig.apiKey);
 
-// ----- Centralized error logger (easy to forward to an external log sink later) -----
+let db = null;
+let authReady = Promise.resolve(false);
+
+if (FIREBASE_CONFIGURED) {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  // Sign in anonymously so Security Rules can require `auth != null`.
+  authReady = firebase.auth()
+    .signInAnonymously()
+    .then(() => true)
+    .catch((err) => { logError('auth.signInAnonymously', err); return false; });
+}
+
+const NOT_CONFIGURED_MSG = 'Firebase belum dikonfigurasi. Isi firebaseConfig di firebase.js (lihat README.md).';
+
+// ----- Centralized error logger -----
 function logError(context, error) {
   const entry = {
     context: context,
@@ -81,81 +102,189 @@ function formatTanggal(ms) {
   return `${p.day}/${p.month}/${p.year}`;
 }
 
+const BULAN_INDO = ["Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const BULAN_ROMAWI = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+
+// "9 Juli 2026" in Asia/Jakarta
+function formatTanggalPanjang(ms) {
+  if (!ms) return '-';
+  const p = _dateParts(ms);
+  return `${Number(p.day)} ${BULAN_INDO[Number(p.month) - 1]} ${p.year}`;
+}
+
 function clean(value, maxLen = 200) {
   return String(value || '').trim().slice(0, maxLen);
+}
+
+// Escape user input before embedding in generated HTML (print windows, lists).
+function esc(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function notConfigured(extra) {
+  return Object.assign({ status: 'error', message: NOT_CONFIGURED_MSG }, extra || {});
 }
 
 // ----- Data access API -----
 const Api = {
 
-  // 1. Dropdown: satuan & kategori
+  // 1. Dropdown: satuan & kategori (keluar + masuk)
   async getDropdownData() {
+    if (!db) return notConfigured({ satuan: [], kategoriKeluar: [], kategoriMasuk: [] });
     try {
       await authReady;
       const snap = await db.ref('master').once('value');
       const m = snap.val() || {};
-      return { status: 'success', satuan: toArr(m.satuan), kategori: toArr(m.kategori) };
+      return {
+        status: 'success',
+        satuan: toArr(m.satuan),
+        kategoriKeluar: toArr(m.kategoriKeluar),
+        kategoriMasuk: toArr(m.kategoriMasuk)
+      };
     } catch (e) {
-      return { status: 'error', satuan: [], kategori: [], message: logError('getDropdownData', e).message };
+      return { status: 'error', satuan: [], kategoriKeluar: [], kategoriMasuk: [], message: logError('getDropdownData', e).message };
     }
   },
 
-  // 2. Dropdown panitia: nama & jabatan
-  async getDataPanitia() {
+  // 2. Dropdown pengurus: nama & jabatan
+  async getDataPengurus() {
+    if (!db) return notConfigured({ nama: [], jabatan: [] });
     try {
       await authReady;
       const snap = await db.ref('master').once('value');
       const m = snap.val() || {};
-      return { status: 'success', nama: toArr(m.namaPanitia), jabatan: toArr(m.jabatan) };
+      return { status: 'success', nama: toArr(m.namaPengurus), jabatan: toArr(m.jabatan) };
     } catch (e) {
-      return { status: 'error', nama: [], jabatan: [], message: logError('getDataPanitia', e).message };
+      return { status: 'error', nama: [], jabatan: [], message: logError('getDataPengurus', e).message };
     }
   },
 
-  // 3. Save pengeluaran (append-only)
-  async simpanData(data) {
+  // ===== KEGIATAN =====
+
+  // 3. List kegiatan (newest first). filterStatus: 'aktif' | 'selesai' | '' (all)
+  async getKegiatanList(filterStatus) {
+    if (!db) return notConfigured({ data: [] });
     try {
       await authReady;
-      const total = Number(data.noRek) || 0;
+      const snap = await db.ref('kegiatan').once('value');
+      const val = snap.val() || {};
+      let list = Object.keys(val).map(k => ({
+        id: k,
+        nama: val[k].nama || '-',
+        status: val[k].status || 'aktif',
+        dibuat: val[k].dibuat || 0
+      }));
+      list.sort((a, b) => b.dibuat - a.dibuat);
+      if (filterStatus) list = list.filter(i => i.status === filterStatus);
+      return { status: 'success', data: list };
+    } catch (e) {
+      return { status: 'error', data: [], message: logError('getKegiatanList', e).message };
+    }
+  },
+
+  // 4. Create kegiatan
+  async simpanKegiatan(nama) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      const n = clean(nama, 100);
+      if (!n) return { status: 'error', message: 'Nama kegiatan wajib diisi' };
+      await db.ref('kegiatan').push({
+        nama: n,
+        status: 'aktif',
+        dibuat: firebase.database.ServerValue.TIMESTAMP
+      });
+      return { status: 'success' };
+    } catch (e) {
+      return { status: 'error', message: logError('simpanKegiatan', e).message };
+    }
+  },
+
+  // 5. Update kegiatan (rename / change status)
+  async updateKegiatan(id, patch) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      const upd = {};
+      if (patch.nama !== undefined) upd.nama = clean(patch.nama, 100);
+      if (patch.status !== undefined) upd.status = patch.status === 'selesai' ? 'selesai' : 'aktif';
+      await db.ref('kegiatan/' + id).update(upd);
+      return { status: 'success' };
+    } catch (e) {
+      return { status: 'error', message: logError('updateKegiatan', e).message };
+    }
+  },
+
+  // 6. Delete kegiatan AND its ledger (/kas/{id})
+  async deleteKegiatan(id) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      await db.ref('kas/' + id).remove();
+      await db.ref('kegiatan/' + id).remove();
+      return { status: 'success' };
+    } catch (e) {
+      return { status: 'error', message: logError('deleteKegiatan', e).message };
+    }
+  },
+
+  // ===== KAS (per buku: 'masjid' or kegiatanId) =====
+
+  // 7. Save pengeluaran (append-only)
+  async simpanPengeluaran(bukuId, data) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      const buku = clean(bukuId, 50);
+      const total = Number(data.total) || 0;
       const qty = Number(data.qty) || 0;
       const pj = clean(data.pj, 100);
-      const keterangan = clean(data.nama, 200);
+      const keterangan = clean(data.keterangan, 200);
 
+      if (!buku) return { status: 'error', message: 'Pilih buku kas terlebih dahulu' };
       if (!pj || !keterangan) return { status: 'error', message: 'PJ dan keterangan wajib diisi' };
       if (total <= 0) return { status: 'error', message: 'Total harga harus lebih dari 0' };
 
-      await db.ref('pengeluaran').push({
+      await db.ref('kas/' + buku + '/pengeluaran').push({
         waktu: firebase.database.ServerValue.TIMESTAMP,
         pj: pj,
         jabatanPj: clean(data.jabatanPj || '', 50),
         keterangan: keterangan,
         total: total,
         qty: qty,
-        satuan: clean(data.harga, 50) || '-',
-        kategori: clean(data.jenis, 50) || 'Lainnya',
+        satuan: clean(data.satuan, 50) || '-',
+        kategori: clean(data.kategori, 50) || 'Lain-lain',
         status: 'Berhasil'
       });
       return { status: 'success', message: 'Data pengeluaran berhasil disimpan' };
     } catch (e) {
-      return { status: 'error', message: logError('simpanData', e).message };
+      return { status: 'error', message: logError('simpanPengeluaran', e).message };
     }
   },
 
-  // 4. Save pemasukan (append-only)
-  async simpanPemasukan(data) {
+  // 8. Save pemasukan (append-only)
+  async simpanPemasukan(bukuId, data) {
+    if (!db) return notConfigured();
     try {
       await authReady;
+      const buku = clean(bukuId, 50);
       const nominal = Number(data.nominal) || 0;
       const pj = clean(data.pj, 100);
 
+      if (!buku) return { status: 'error', message: 'Pilih buku kas terlebih dahulu' };
       if (!pj) return { status: 'error', message: 'Penanggung jawab wajib diisi' };
       if (nominal <= 0) return { status: 'error', message: 'Nominal harus lebih dari 0' };
 
-      await db.ref('pemasukan').push({
+      await db.ref('kas/' + buku + '/pemasukan').push({
         waktu: firebase.database.ServerValue.TIMESTAMP,
         pj: pj,
+        jabatanPj: clean(data.jabatanPj || '', 50),
         nominal: nominal,
-        keterangan: clean(data.keterangan, 200)
+        keterangan: clean(data.keterangan, 200),
+        kategori: clean(data.kategori, 50) || 'Lain-lain'
       });
       return { status: 'success', message: 'Data pemasukan berhasil disimpan' };
     } catch (e) {
@@ -163,33 +292,97 @@ const Api = {
     }
   },
 
-  // 5. Save susunan panitia (append-only)
-  async simpanSusunan(data) {
+  // 9. Laporan D/K per buku, optional period filter (ms timestamps, inclusive).
+  //    Returns merged rows (D = pemasukan, K = pengeluaran) sorted oldest first.
+  async getLaporanData(bukuId, fromMs, toMs) {
+    if (!db) return notConfigured({ data: null });
+    try {
+      await authReady;
+      const buku = clean(bukuId, 50) || BUKU_MASJID;
+      const [kelSnap, masSnap] = await Promise.all([
+        db.ref('kas/' + buku + '/pengeluaran').once('value'),
+        db.ref('kas/' + buku + '/pemasukan').once('value')
+      ]);
+      const kel = kelSnap.val() || {};
+      const mas = masSnap.val() || {};
+
+      let rows = [];
+      Object.keys(mas).forEach(k => {
+        const r = mas[k];
+        rows.push({
+          key: k, jenis: 'D',
+          waktu: r.waktu || 0,
+          tanggal: formatTanggal(r.waktu),
+          tanggalJam: formatTanggalJam(r.waktu),
+          keterangan: r.keterangan || 'Pemasukan',
+          kategori: r.kategori || '-',
+          pj: r.pj || '-',
+          jabatanPj: r.jabatanPj || '',
+          qty: 0, satuan: '',
+          nominal: Number(r.nominal) || 0
+        });
+      });
+      Object.keys(kel).forEach(k => {
+        const r = kel[k];
+        rows.push({
+          key: k, jenis: 'K',
+          waktu: r.waktu || 0,
+          tanggal: formatTanggal(r.waktu),
+          tanggalJam: formatTanggalJam(r.waktu),
+          keterangan: r.keterangan || '-',
+          kategori: r.kategori || '-',
+          pj: r.pj || '-',
+          jabatanPj: r.jabatanPj || '',
+          qty: r.qty || 0,
+          satuan: r.satuan || '',
+          nominal: Number(r.total) || 0
+        });
+      });
+
+      if (fromMs) rows = rows.filter(r => r.waktu >= fromMs);
+      if (toMs) rows = rows.filter(r => r.waktu <= toMs);
+      rows.sort((a, b) => a.waktu - b.waktu);
+
+      let totalD = 0, totalK = 0;
+      rows.forEach(r => { if (r.jenis === 'D') totalD += r.nominal; else totalK += r.nominal; });
+
+      return {
+        status: 'success',
+        data: { rows: rows, totalD: totalD, totalK: totalK, saldo: totalD - totalK }
+      };
+    } catch (e) {
+      return { status: 'error', data: null, message: logError('getLaporanData', e).message };
+    }
+  },
+
+  // ===== PENGURUS =====
+
+  // 10. Save susunan pengurus (append-only)
+  async simpanPengurus(data) {
+    if (!db) return notConfigured();
     try {
       await authReady;
       const jabatan = clean(data.jabatan, 50);
       const nama = clean(data.nama, 100);
-
       if (!jabatan || !nama) return { status: 'error', message: 'Jabatan dan nama wajib diisi' };
-
-      await db.ref('panitia').push({
+      await db.ref('pengurus').push({
         waktu: firebase.database.ServerValue.TIMESTAMP,
         jabatan: jabatan,
         nama: nama
       });
-      return { status: 'success', message: 'Susunan panitia berhasil disimpan' };
+      return { status: 'success', message: 'Susunan pengurus berhasil disimpan' };
     } catch (e) {
-      return { status: 'error', message: logError('simpanSusunan', e).message };
+      return { status: 'error', message: logError('simpanPengurus', e).message };
     }
   },
 
-  // 6. Read susunan panitia with search/filter (newest first)
-  async getSusunanPanitia(params) {
+  // 11. Read susunan pengurus with search/filter (newest first)
+  async getSusunanPengurus(params) {
+    if (!db) return notConfigured({ data: [] });
     try {
       await authReady;
-      const snap = await db.ref('panitia').once('value');
+      const snap = await db.ref('pengurus').once('value');
       const val = snap.val() || {};
-
       let list = Object.keys(val).map(k => ({
         jabatan: val[k].jabatan || '-',
         nama: val[k].nama || '-',
@@ -199,173 +392,21 @@ const Api = {
 
       const search = (params && params.search) ? params.search.toLowerCase() : '';
       const filterJabatan = (params && params.jabatan) ? params.jabatan : '';
-
       if (search) list = list.filter(i => String(i.nama).toLowerCase().includes(search));
       if (filterJabatan) list = list.filter(i => i.jabatan === filterJabatan);
 
       return { status: 'success', data: list.map(({ _w, ...rest }) => rest) };
     } catch (e) {
-      return { status: 'error', message: logError('getSusunanPanitia', e).message };
+      return { status: 'error', data: [], message: logError('getSusunanPengurus', e).message };
     }
   },
 
-  // 7. Read riwayat pengeluaran with search/filter/limit (newest first)
-  async getRiwayatData(params) {
+  // 12. Admin: get all pengurus records with keys
+  async getAllPengurusRecords() {
+    if (!db) return notConfigured({ data: [] });
     try {
       await authReady;
-      const snap = await db.ref('pengeluaran').once('value');
-      const val = snap.val() || {};
-
-      let list = Object.keys(val).map(k => {
-        const r = val[k];
-        return {
-          waktu: formatTanggalJam(r.waktu),
-          pj: r.pj || '-',
-          jabatanPj: r.jabatanPj || '',
-          keterangan: r.keterangan || '-',
-          total: Number(r.total) || 0,
-          qty: r.qty || 0,
-          satuan: r.satuan || '-',
-          kategori: r.kategori || '-',
-          _w: r.waktu || 0
-        };
-      });
-      list.sort((a, b) => b._w - a._w);
-
-      const limit = (params && params.limit) ? params.limit : 20;
-      const search = (params && params.search) ? params.search.toLowerCase() : '';
-      const filterKategori = (params && params.kategori) ? params.kategori : '';
-
-      if (search) {
-        list = list.filter(i =>
-          String(i.keterangan).toLowerCase().includes(search) ||
-          String(i.pj).toLowerCase().includes(search)
-        );
-      }
-      if (filterKategori) list = list.filter(i => i.kategori === filterKategori);
-
-      return { status: 'success', data: list.slice(0, limit).map(({ _w, ...rest }) => rest) };
-    } catch (e) {
-      return { status: 'error', message: logError('getRiwayatData', e).message };
-    }
-  },
-
-  // 8. Aggregate data for LPJ / PDF
-  async getLPJData() {
-    try {
-      await authReady;
-      const [pengSnap, pemSnap, strSnap, adminSnap] = await Promise.all([
-        db.ref('pengeluaran').once('value'),
-        db.ref('pemasukan').once('value'),
-        db.ref('struktur').once('value'),
-        db.ref('admin/config').once('value')
-      ]);
-      const adminCfg = adminSnap.val() || {};
-      const lpjInfo = adminCfg.lpjInfo || {};
-
-      const peng = pengSnap.val() || {};
-      const pem = pemSnap.val() || {};
-      const str = strSnap.val() || {};
-
-      const struktur = {
-        pj: str.pj || '..........................',
-        ketua: str.ketua || '..........................',
-        bendahara: str.bendahara || '..........................',
-        sekretaris: str.sekretaris || '..........................'
-      };
-
-      let grouped = {};
-      let totalPengeluaran = 0;
-      Object.values(peng).forEach(r => {
-        const nominal = Number(r.total) || 0;
-        const cat = r.kategori || 'Lainnya';
-        if (!grouped[cat]) grouped[cat] = { total: 0, items: [] };
-        grouped[cat].total += nominal;
-        grouped[cat].items.push({
-          tanggal: formatTanggalJam(r.waktu),
-          keterangan: r.keterangan || '-',
-          qty: r.qty || 0,
-          satuan: r.satuan || '-',
-          nominal: nominal,
-          pj: r.pj || '-',
-          jabatanPj: r.jabatanPj || '-'
-        });
-        totalPengeluaran += nominal;
-      });
-
-      let totalPemasukan = 0;
-      Object.values(pem).forEach(r => { totalPemasukan += Number(r.nominal) || 0; });
-
-      return {
-        status: 'success',
-        data: {
-          grouped: grouped,
-          totalPemasukan: totalPemasukan,
-          totalPengeluaran: totalPengeluaran,
-          saldo: totalPemasukan - totalPengeluaran,
-          struktur: struktur,
-          lpjInfo: {
-            lembaga: lpjInfo.lembaga || 'TPQ AL-MAIDAH KARANGSONO',
-            alamat: lpjInfo.alamat || '',
-            kegiatan: lpjInfo.kegiatan || 'WISUDA SANTRI',
-            logoBase64: adminCfg.logoBase64 || ''
-          }
-        }
-      };
-    } catch (e) {
-      return { status: 'error', message: logError('getLPJData', e).message };
-    }
-  },
-
-  // 9. Admin: get config (pinHash + menu visibility)
-  async getAdminConfig() {
-    try {
-      await authReady;
-      const snap = await db.ref('admin/config').once('value');
-      return { status: 'success', data: snap.val() || {} };
-    } catch (e) {
-      return { status: 'error', data: {}, message: logError('getAdminConfig', e).message };
-    }
-  },
-
-  // 10. Admin: save full config
-  async saveAdminConfig(config) {
-    try {
-      await authReady;
-      await db.ref('admin/config').set(config);
-      return { status: 'success' };
-    } catch (e) {
-      return { status: 'error', message: logError('saveAdminConfig', e).message };
-    }
-  },
-
-  // 11. Admin: get full master data
-  async getMasterData() {
-    try {
-      await authReady;
-      const snap = await db.ref('master').once('value');
-      return { status: 'success', data: snap.val() || {} };
-    } catch (e) {
-      return { status: 'error', data: {}, message: logError('getMasterData', e).message };
-    }
-  },
-
-  // 12. Admin: overwrite a master list (kategori, namaPanitia, etc.)
-  async updateMasterList(key, arr) {
-    try {
-      await authReady;
-      await db.ref('master/' + key).set(arr);
-      return { status: 'success' };
-    } catch (e) {
-      return { status: 'error', message: logError('updateMasterList', e).message };
-    }
-  },
-
-  // 13. Admin: get all panitia records with their Firebase keys
-  async getAllPanitiaRecords() {
-    try {
-      await authReady;
-      const snap = await db.ref('panitia').once('value');
+      const snap = await db.ref('pengurus').once('value');
       const val = snap.val() || {};
       const list = Object.keys(val).map(k => ({
         key: k,
@@ -376,37 +417,196 @@ const Api = {
       list.sort((a, b) => b.waktu - a.waktu);
       return { status: 'success', data: list };
     } catch (e) {
-      return { status: 'error', data: [], message: logError('getAllPanitiaRecords', e).message };
+      return { status: 'error', data: [], message: logError('getAllPengurusRecords', e).message };
     }
   },
 
-  // 14. Admin: update jabatan of a panitia record
-  async updatePanitiaJabatan(key, jabatan) {
+  // 13. Admin: update jabatan of a pengurus record
+  async updatePengurusJabatan(key, jabatan) {
+    if (!db) return notConfigured();
     try {
       await authReady;
-      await db.ref('panitia/' + key + '/jabatan').set(clean(jabatan, 50));
+      await db.ref('pengurus/' + key + '/jabatan').set(clean(jabatan, 50));
       return { status: 'success' };
     } catch (e) {
-      return { status: 'error', message: logError('updatePanitiaJabatan', e).message };
+      return { status: 'error', message: logError('updatePengurusJabatan', e).message };
     }
   },
 
-  // 15. Admin: delete a panitia record
-  async deletePanitia(key) {
+  // 14. Admin: delete a pengurus record
+  async deletePengurus(key) {
+    if (!db) return notConfigured();
     try {
       await authReady;
-      await db.ref('panitia/' + key).remove();
+      await db.ref('pengurus/' + key).remove();
       return { status: 'success' };
     } catch (e) {
-      return { status: 'error', message: logError('deletePanitia', e).message };
+      return { status: 'error', message: logError('deletePengurus', e).message };
     }
   },
 
-  // 16. Admin audit: get all pengeluaran records with keys (newest first)
-  async getAllPengeluaranRecords() {
+  // ===== STRUKTUR (penandatangan) =====
+
+  // 15. Get struktur takmir { ketua, sekretaris, bendahara, penasehat }
+  async getStruktur() {
+    if (!db) return notConfigured({ data: {} });
     try {
       await authReady;
-      const snap = await db.ref('pengeluaran').once('value');
+      const snap = await db.ref('struktur').once('value');
+      return { status: 'success', data: snap.val() || {} };
+    } catch (e) {
+      return { status: 'error', data: {}, message: logError('getStruktur', e).message };
+    }
+  },
+
+  // 16. Save struktur takmir
+  async saveStruktur(data) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      await db.ref('struktur').set({
+        ketua: clean(data.ketua, 100),
+        sekretaris: clean(data.sekretaris, 100),
+        bendahara: clean(data.bendahara, 100),
+        penasehat: clean(data.penasehat, 100)
+      });
+      return { status: 'success' };
+    } catch (e) {
+      return { status: 'error', message: logError('saveStruktur', e).message };
+    }
+  },
+
+  // ===== SURAT =====
+
+  // 17. Generate nomor surat via transaction on /suratCounter/{tahun}.
+  //     Format: 001/{kodeSurat}/{bulanRomawi}/{tahun}
+  async generateNomorSurat(tanggalMs, kodeSurat) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      const d = new Date(tanggalMs || Date.now());
+      const tahun = d.getFullYear();
+      const bulan = d.getMonth();
+      const ref = db.ref('suratCounter/' + tahun);
+      const result = await ref.transaction(cur => (Number(cur) || 0) + 1);
+      if (!result.committed) return { status: 'error', message: 'Gagal mengambil nomor urut surat' };
+      const seq = result.snapshot.val();
+      const nomor = String(seq).padStart(3, '0') + '/' + (clean(kodeSurat, 30) || 'TKM-BTL') +
+        '/' + BULAN_ROMAWI[bulan] + '/' + tahun;
+      return { status: 'success', nomor: nomor, seq: seq };
+    } catch (e) {
+      return { status: 'error', message: logError('generateNomorSurat', e).message };
+    }
+  },
+
+  // 18. Save surat to archive
+  async simpanSurat(record) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      const surat = {
+        nomor: clean(record.nomor, 60),
+        jenis: clean(record.jenis, 30),
+        tanggal: Number(record.tanggal) || Date.now(),
+        perihal: clean(record.perihal, 150),
+        tujuan: clean(record.tujuan, 200),
+        lampiran: clean(record.lampiran, 50) || '-',
+        detail: record.detail || {},
+        pembuat: clean(record.pembuat, 100),
+        dibuat: firebase.database.ServerValue.TIMESTAMP
+      };
+      if (!surat.nomor || !surat.jenis) return { status: 'error', message: 'Nomor dan jenis surat wajib ada' };
+      const ref = await db.ref('surat').push(surat);
+      return { status: 'success', key: ref.key };
+    } catch (e) {
+      return { status: 'error', message: logError('simpanSurat', e).message };
+    }
+  },
+
+  // 19. Archive list (newest first)
+  async getArsipSurat() {
+    if (!db) return notConfigured({ data: [] });
+    try {
+      await authReady;
+      const snap = await db.ref('surat').once('value');
+      const val = snap.val() || {};
+      const list = Object.keys(val).map(k => Object.assign({ key: k }, val[k]));
+      list.sort((a, b) => (b.dibuat || 0) - (a.dibuat || 0));
+      return { status: 'success', data: list };
+    } catch (e) {
+      return { status: 'error', data: [], message: logError('getArsipSurat', e).message };
+    }
+  },
+
+  // 20. Delete a surat from archive (numbering is NOT rolled back)
+  async deleteSurat(key) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      await db.ref('surat/' + key).remove();
+      return { status: 'success' };
+    } catch (e) {
+      return { status: 'error', message: logError('deleteSurat', e).message };
+    }
+  },
+
+  // ===== ADMIN =====
+
+  // 21. Admin: get config (pinHash + menu + orgInfo + logo)
+  async getAdminConfig() {
+    if (!db) return notConfigured({ data: {} });
+    try {
+      await authReady;
+      const snap = await db.ref('admin/config').once('value');
+      return { status: 'success', data: snap.val() || {} };
+    } catch (e) {
+      return { status: 'error', data: {}, message: logError('getAdminConfig', e).message };
+    }
+  },
+
+  // 22. Admin: save full config
+  async saveAdminConfig(config) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      await db.ref('admin/config').set(config);
+      return { status: 'success' };
+    } catch (e) {
+      return { status: 'error', message: logError('saveAdminConfig', e).message };
+    }
+  },
+
+  // 23. Admin: get full master data
+  async getMasterData() {
+    if (!db) return notConfigured({ data: {} });
+    try {
+      await authReady;
+      const snap = await db.ref('master').once('value');
+      return { status: 'success', data: snap.val() || {} };
+    } catch (e) {
+      return { status: 'error', data: {}, message: logError('getMasterData', e).message };
+    }
+  },
+
+  // 24. Admin: overwrite a master list (kategoriKeluar, namaPengurus, etc.)
+  async updateMasterList(key, arr) {
+    if (!db) return notConfigured();
+    try {
+      await authReady;
+      await db.ref('master/' + key).set(arr);
+      return { status: 'success' };
+    } catch (e) {
+      return { status: 'error', message: logError('updateMasterList', e).message };
+    }
+  },
+
+  // 25. Admin audit: all records of one buku + jenis ('pengeluaran'|'pemasukan'), newest first
+  async getAllKasRecords(bukuId, jenis) {
+    if (!db) return notConfigured({ data: [] });
+    try {
+      await authReady;
+      const node = jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran';
+      const snap = await db.ref('kas/' + clean(bukuId, 50) + '/' + node).once('value');
       const val = snap.val() || {};
       const list = Object.keys(val).map(k => {
         const r = val[k];
@@ -417,54 +617,66 @@ const Api = {
           pj: r.pj || '-',
           jabatanPj: r.jabatanPj || '',
           keterangan: r.keterangan || '-',
-          total: Number(r.total) || 0,
+          nominal: Number(node === 'pemasukan' ? r.nominal : r.total) || 0,
           qty: r.qty || 0,
           satuan: r.satuan || '-',
-          kategori: r.kategori || '-',
-          status: r.status || ''
+          kategori: r.kategori || '-'
         };
       });
       list.sort((a, b) => b.waktu - a.waktu);
       return { status: 'success', data: list };
     } catch (e) {
-      return { status: 'error', data: [], message: logError('getAllPengeluaranRecords', e).message };
+      return { status: 'error', data: [], message: logError('getAllKasRecords', e).message };
     }
   },
 
-  // 17. Admin audit: update a pengeluaran record
-  async updatePengeluaran(key, data) {
+  // 26. Admin audit: update a kas record
+  async updateKasRecord(bukuId, jenis, key, data) {
+    if (!db) return notConfigured();
     try {
       await authReady;
-      await db.ref('pengeluaran/' + key).set({
-        waktu: data.waktu || Date.now(),
+      const node = jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran';
+      const base = {
+        waktu: Number(data.waktu) || Date.now(),
         pj: clean(data.pj, 100),
         jabatanPj: clean(data.jabatanPj || '', 50),
         keterangan: clean(data.keterangan, 200),
-        total: Number(data.total) || 0,
-        qty: Number(data.qty) || 0,
-        satuan: clean(data.satuan || '-', 50),
-        kategori: clean(data.kategori || 'Lainnya', 50),
-        status: 'Edit'
-      });
+        kategori: clean(data.kategori || 'Lain-lain', 50)
+      };
+      let record;
+      if (node === 'pemasukan') {
+        record = Object.assign(base, { nominal: Number(data.nominal) || 0 });
+      } else {
+        record = Object.assign(base, {
+          total: Number(data.nominal) || 0,
+          qty: Number(data.qty) || 0,
+          satuan: clean(data.satuan || '-', 50),
+          status: 'Edit'
+        });
+      }
+      await db.ref('kas/' + clean(bukuId, 50) + '/' + node + '/' + key).set(record);
       return { status: 'success' };
     } catch (e) {
-      return { status: 'error', message: logError('updatePengeluaran', e).message };
+      return { status: 'error', message: logError('updateKasRecord', e).message };
     }
   },
 
-  // 18. Admin audit: delete a pengeluaran record
-  async deletePengeluaran(key) {
+  // 27. Admin audit: delete a kas record
+  async deleteKasRecord(bukuId, jenis, key) {
+    if (!db) return notConfigured();
     try {
       await authReady;
-      await db.ref('pengeluaran/' + key).remove();
+      const node = jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran';
+      await db.ref('kas/' + clean(bukuId, 50) + '/' + node + '/' + key).remove();
       return { status: 'success' };
     } catch (e) {
-      return { status: 'error', message: logError('deletePengeluaran', e).message };
+      return { status: 'error', message: logError('deleteKasRecord', e).message };
     }
   },
 
-  // 19. Get all per-member PIN hashes from /admin/memberPins
+  // 28. Get all per-member PIN hashes from /admin/memberPins
   async getMemberPins() {
+    if (!db) return notConfigured({ data: {} });
     try {
       await authReady;
       const snap = await db.ref('admin/memberPins').once('value');
@@ -474,8 +686,9 @@ const Api = {
     }
   },
 
-  // 20. Set individual member PIN hash
+  // 29. Set individual member PIN hash
   async setMemberPin(nameKey, pinHash) {
+    if (!db) return notConfigured();
     try {
       await authReady;
       await db.ref('admin/memberPins/' + nameKey).set(pinHash);
@@ -485,8 +698,9 @@ const Api = {
     }
   },
 
-  // 21. Remove individual member PIN (reverts to shared PIN)
+  // 30. Remove individual member PIN (reverts to shared PIN)
   async removeMemberPin(nameKey) {
+    if (!db) return notConfigured();
     try {
       await authReady;
       await db.ref('admin/memberPins/' + nameKey).remove();
